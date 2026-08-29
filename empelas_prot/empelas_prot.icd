@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EmPowerElas - Maquete de Subestacao Digital
+  IED de medicao e protecao (Raspberry Pi 1)
+
+  Concentra as grandezas medidas dos transformadores de instrumento
+  (TC e TP) e, futuramente, as funcoes de protecao de sobrecorrente.
+-->
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+  <Header id="EmpElas" nameStructure="IEDName" />
+  <IED name="EmpElas_PROT">
+    <Services>
+      <GetDirectory /><GetDataObjectDefinition /><ReadWrite /><GetCBValues />
+      <ConfLNs fixPrefix="true" fixLnInst="true" />
+    </Services>
+    <AccessPoint name="AP1">
+      <Server>
+        <Authentication />
+
+        <!-- Medicao e protecao -->
+        <LDevice inst="MEDPROT">
+          <LN0 lnClass="LLN0" lnType="LLN01" inst="">
+            <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
+          </LN0>
+          <LN lnClass="LPHD" lnType="LPHD1_Typ" inst="1" prefix="">
+            <DOI name="NamPlt" /> <DOI name="PhyNam" /> <DOI name="PhyHealth" /> <DOI name="OutOv" /> <DOI name="Proxy" /> <DOI name="OpTmh" /> <DOI name="Sim" />
+          </LN>
+
+          <!-- Gestao de tempo: base para a lista de eventos com selo de tempo -->
+          <LN lnClass="LTIM" lnType="LTIM1_Typ" inst="1" prefix="">
+            <DOI name="Beh" /> <DOI name="Health" /> <DOI name="TmDT" />
+          </LN>
+          <LN lnClass="LTMS" lnType="LTMS1_Typ" inst="1" prefix="">
+            <DOI name="TmSrc" /> <DOI name="TmSrcTyp" /> <DOI name="Beh" />
+          </LN>
+
+          <!-- Medicao: corrente (TC) e tensao (TP) -->
+          <LN lnClass="MMXU" lnType="MMXU1_Typ" inst="1" prefix="">
+            <DOI name="NamPlt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="TotW" /> <DOI name="Vol" /> <DOI name="Amp" />
+          </LN>
+        </LDevice>
+      </Server>
+    </AccessPoint>
+  </IED>
+
+  <DataTypeTemplates>
+    <LNodeType id="LLN01" lnClass="LLN0"><DO name="Mod" type="ENC_Mod"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Diag" type="SPS_Generic"/><DO name="LEDRs" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="LPHD1_Typ" lnClass="LPHD"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="PhyNam" type="DPL_Generic"/><DO name="PhyHealth" type="ENS_Health"/><DO name="OutOv" type="SPS_Generic"/><DO name="Proxy" type="SPS_Generic"/><DO name="OpTmh" type="INS_Generic"/><DO name="Sim" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="LTIM1_Typ" lnClass="LTIM"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="TmDT" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="LTMS1_Typ" lnClass="LTMS"><DO name="TmSrc" type="ENS_Generic"/><DO name="TmSrcTyp" type="ENS_Generic"/><DO name="Beh" type="ENS_Beh"/></LNodeType>
+    <LNodeType id="MMXU1_Typ" lnClass="MMXU"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="TotW" type="MV_Generic"/><DO name="Vol" type="MV_Generic"/><DO name="Amp" type="MV_Generic"/></LNodeType>
+
+    <DOType id="ENC_Mod" cdc="ENC"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
+    <DOType id="ENS_Beh" cdc="ENS"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ENS_Health" cdc="ENS"><DA name="stVal" bType="Enum" type="HealthKind" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ENS_Generic" cdc="ENS"><DA name="stVal" bType="INT8U" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="SPS_Generic" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
+    <DOType id="INS_Generic" cdc="INS"><DA name="stVal" bType="INT32" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="MV_Generic" cdc="MV"><DA name="instMag" type="AnalogueValue_1" bType="Struct" fc="MX" /><DA name="mag" type="AnalogueValue_1" bType="Struct" fc="MX" dchg="true" /><DA name="q" bType="Quality" fc="MX" qchg="true" /><DA name="t" bType="Timestamp" fc="MX" /><DA name="units" type="Unit_1" bType="Struct" fc="CF" /><DA name="sVC" type="ScaledValueConfig_1" bType="Struct" fc="CF" /><DA name="db" bType="INT32U" fc="CF" /><DA name="subEna" bType="BOOLEAN" fc="SV" /><DA name="subMag" type="AnalogueValue_1" bType="Struct" fc="SV" /><DA name="subQ" bType="Quality" fc="SV" /><DA name="subID" bType="VisString64" fc="SV" /><DA name="blkEna" bType="BOOLEAN" fc="BL" /></DOType>
+    <DOType id="LPL_NamPlt" cdc="LPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="swRev" bType="VisString255" fc="DC" /><DA name="d" bType="VisString255" fc="DC" /><DA name="configRev" bType="VisString255" fc="DC" /><DA name="lnNs" bType="VisString255" fc="EX" /></DOType>
+    <DOType id="DPL_Generic" cdc="DPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="model" bType="VisString255" fc="DC" /></DOType>
+
+    <DAType id="AnalogueValue_1"><BDA name="f" bType="FLOAT32" /></DAType>
+    <DAType id="Unit_1"><BDA name="SIUnit" bType="Enum" type="SIUnitKind" /><BDA name="multiplier" bType="Enum" type="MultiplierKind" /></DAType>
+    <DAType id="ScaledValueConfig_1"><BDA name="scaleFactor" bType="FLOAT32" /><BDA name="offset" bType="FLOAT32" /></DAType>
+
+    <EnumType id="Beh"><EnumVal ord="1">on</EnumVal><EnumVal ord="2">blocked</EnumVal><EnumVal ord="3">test</EnumVal><EnumVal ord="4">test/blocked</EnumVal><EnumVal ord="5">off</EnumVal></EnumType>
+    <EnumType id="HealthKind"><EnumVal ord="1">ok</EnumVal><EnumVal ord="2">warning</EnumVal><EnumVal ord="3">alarm</EnumVal></EnumType>
+    <EnumType id="CtlModels"><EnumVal ord="0">status-only</EnumVal><EnumVal ord="1">direct-with-normal-security</EnumVal><EnumVal ord="2">sbo-with-normal-security</EnumVal><EnumVal ord="3">direct-with-enhanced-security</EnumVal><EnumVal ord="4">sbo-with-enhanced-security</EnumVal></EnumType>
+    <EnumType id="SIUnitKind"><EnumVal ord="1">V</EnumVal><EnumVal ord="2">A</EnumVal><EnumVal ord="3">W</EnumVal><EnumVal ord="4">Hz</EnumVal><EnumVal ord="5">°C</EnumVal></EnumType>
+    <EnumType id="MultiplierKind"><EnumVal ord="1">k</EnumVal><EnumVal ord="2">M</EnumVal><EnumVal ord="3">m</EnumVal></EnumType>
+  </DataTypeTemplates>
+
+  <Communication>
+    <SubNetwork name="Subnet1" type="8-MMS">
+      <Text>Barramento de estacao - EmPowerElas</Text>
+      <!-- AJUSTAR: colocar o IP real da Pi 1 na rede da maquete -->
+      <ConnectedAP iedName="EmpElas_PROT" apName="AP1">
+        <Address>
+          <PType type="IP">192.168.2.250</PType> <PType type="IP-SUBNET">255.255.255.0</PType>
+          <PType type="IP-GATEWAY">192.168.2.1</PType>
+          <PType type="OSI-AP-Title">1,3,9,999,1</PType>
+          <PType type="OSI-AE-Qualifier">12</PType>
+          <PType type="OSI-PSEL">00000001</PType>
+          <PType type="OSI-SSEL">0001</PType>
+          <PType type="OSI-TSEL">0001</PType>
+        </Address>
+      </ConnectedAP>
+    </SubNetwork>
+  </Communication>
+</SCL>

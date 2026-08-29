@@ -1,0 +1,6 @@
+static_model.c
+static_model.h
+empelas_prot/empelas_prot
+empelas_ctrl/empelas_ctrl
+*.o
+logs/
