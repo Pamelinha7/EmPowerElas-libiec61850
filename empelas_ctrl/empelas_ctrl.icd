@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EmPowerElas - Maquete de Subestacao Digital
+  IED de controle de vao (Raspberry Pi 2)
+
+  Concentra os equipamentos de manobra: a chave seccionadora acionada
+  por servo e os tres disjuntores indicados por LED.
+-->
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+  <Header id="EmpElas" nameStructure="IEDName" />
+  <IED name="EmpElas_CTRL">
+    <Services>
+      <GetDirectory /><GetDataObjectDefinition /><ReadWrite /><GetCBValues />
+      <ConfLNs fixPrefix="true" fixLnInst="true" />
+    </Services>
+    <AccessPoint name="AP1">
+      <Server>
+        <Authentication />
+
+        <!-- Vao: manobra e protecao de campo -->
+        <LDevice inst="VAO">
+          <LN0 lnClass="LLN0" lnType="LLN01" inst="">
+            <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
+          </LN0>
+          <LN lnClass="LPHD" lnType="LPHD1_Typ" inst="1" prefix="">
+            <DOI name="NamPlt" /> <DOI name="PhyNam" /> <DOI name="PhyHealth" /> <DOI name="OutOv" /> <DOI name="Proxy" /> <DOI name="OpTmh" /> <DOI name="Sim" />
+          </LN>
+
+          <!-- Supervisao de assinatura GOOSE: usado quando o trip vier da Pi 1 -->
+          <LN lnClass="LGOS" lnType="LGOS1_Typ" inst="1" prefix="">
+            <DOI name="Beh" /> <DOI name="Health" /> <DOI name="GoCBRef" /> <DOI name="St" /> <DOI name="NdsCom" /> <DOI name="SimSt" /> <DOI name="ConfRevNum" /> <DOI name="RxConfRevNum" /> <DOI name="LastStNum" />
+          </LN>
+          <LN lnClass="LTRK" lnType="LTRK1_Typ" inst="1" prefix="">
+            <DOI name="Beh" /> <DOI name="Health" /> <DOI name="GenTrk" /> <DOI name="UrcbTrk" /> <DOI name="BrcbTrk" /> <DOI name="GocbTrk" />
+          </LN>
+
+          <!-- Chave seccionadora (servo SG90) -->
+          <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="1" prefix="">
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+          </LN>
+
+          <!-- Disjuntores (pares de LED) -->
+          <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="1" prefix="">
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+          </LN>
+          <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="2" prefix="">
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+          </LN>
+          <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="3" prefix="">
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+          </LN>
+        </LDevice>
+      </Server>
+    </AccessPoint>
+  </IED>
+
+  <DataTypeTemplates>
+    <LNodeType id="LLN01" lnClass="LLN0"><DO name="Mod" type="ENC_Mod"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Diag" type="SPS_Generic"/><DO name="LEDRs" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="LPHD1_Typ" lnClass="LPHD"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="PhyNam" type="DPL_Generic"/><DO name="PhyHealth" type="ENS_Health"/><DO name="OutOv" type="SPS_Generic"/><DO name="Proxy" type="SPS_Generic"/><DO name="OpTmh" type="INS_Generic"/><DO name="Sim" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="LGOS1_Typ" lnClass="LGOS"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="GoCBRef" type="ORG_Generic"/><DO name="St" type="SPS_Generic"/><DO name="NdsCom" type="SPS_Generic"/><DO name="SimSt" type="SPS_Generic"/><DO name="ConfRevNum" type="INS_Generic"/><DO name="RxConfRevNum" type="INS_Generic"/><DO name="LastStNum" type="INS_Generic"/></LNodeType>
+    <LNodeType id="LTRK1_Typ" lnClass="LTRK"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="GenTrk" type="TRK_Generic"/><DO name="UrcbTrk" type="TRK_Generic"/><DO name="BrcbTrk" type="TRK_Generic"/><DO name="GocbTrk" type="TRK_Generic"/></LNodeType>
+    <LNodeType id="XSWI1_Typ" lnClass="XSWI"><DO name="EEName" type="DPL_Generic"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="SwOpCap" type="ENS_Generic"/><DO name="Loc" type="SPS_Generic"/><DO name="LocKey" type="SPS_Generic"/><DO name="EEHealth" type="ENS_Health"/><DO name="Blk" type="SPS_Generic"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="LocSta" type="SPC_Generic"/><DO name="Pos" type="DPC_Generic"/><DO name="BlkOpn" type="SPC_Generic"/><DO name="BlkCls" type="SPC_Generic"/><DO name="Mod" type="ENC_Mod"/><DO name="BlkRef" type="ORG_Generic"/><DO name="OpCnt" type="INS_Generic"/><DO name="SwTyp" type="ENS_Generic"/></LNodeType>
+    <LNodeType id="XCBR1_Typ" lnClass="XCBR"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Loc" type="SPS_Generic"/><DO name="OpCnt" type="INS_Generic"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Mod" type="ENC_Mod"/><DO name="Pos" type="DPC_Generic"/><DO name="BlkOpn" type="SPC_Generic"/><DO name="BlkCls" type="SPC_Generic"/></LNodeType>
+
+    <DOType id="ENC_Mod" cdc="ENC"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
+    <DOType id="ENS_Beh" cdc="ENS"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ENS_Health" cdc="ENS"><DA name="stVal" bType="Enum" type="HealthKind" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ENS_Generic" cdc="ENS"><DA name="stVal" bType="INT8U" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="SPS_Generic" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
+    <DOType id="INS_Generic" cdc="INS"><DA name="stVal" bType="INT32" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="SPC_Generic" cdc="SPC"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /><DA name="Oper" type="SPCOperate_1" bType="Struct" fc="CO" /></DOType>
+    <DOType id="DPC_Generic" cdc="DPC"><DA name="stVal" bType="Dbpos" type="Dbpos" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /><DA name="Oper" type="DPCOperate_1" bType="Struct" fc="CO" /></DOType>
+    <DOType id="LPL_NamPlt" cdc="LPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="swRev" bType="VisString255" fc="DC" /><DA name="d" bType="VisString255" fc="DC" /><DA name="configRev" bType="VisString255" fc="DC" /><DA name="lnNs" bType="VisString255" fc="EX" /></DOType>
+    <DOType id="DPL_Generic" cdc="DPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="model" bType="VisString255" fc="DC" /></DOType>
+    <DOType id="ORG_Generic" cdc="ORG"><DA name="setSrcRef" bType="ObjRef" fc="SP" /></DOType>
+    <DOType id="TRK_Generic" cdc="TRK"><DA name="objRef" bType="ObjRef" fc="ST" /><DA name="serviceType" bType="INT8U" fc="ST" /><DA name="errorCode" bType="INT8U" fc="ST" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="rptID" bType="VisString64" fc="ST" /><DA name="rptEna" bType="BOOLEAN" fc="ST" /><DA name="resv" bType="BOOLEAN" fc="ST" /><DA name="datSet" bType="VisString64" fc="ST" /><DA name="confRev" bType="INT32U" fc="ST" /><DA name="optFlds" bType="OptFlds" fc="ST" /><DA name="bufTm" bType="INT32U" fc="ST" /><DA name="sqNum" bType="INT16U" fc="ST" /><DA name="trgOps" bType="TrgOps" fc="ST" /><DA name="intgPd" bType="INT32U" fc="ST" /><DA name="gi" bType="BOOLEAN" fc="ST" /><DA name="purgeBuf" bType="BOOLEAN" fc="ST" /><DA name="entryID" bType="Octet64" fc="ST" /><DA name="timeOfEntry" bType="Timestamp" fc="ST" /><DA name="goEna" bType="BOOLEAN" fc="ST" /><DA name="goID" bType="VisString64" fc="ST" /><DA name="ndsCom" bType="BOOLEAN" fc="ST" /><DA name="dstAddress" bType="Octet64" fc="ST" /></DOType>
+
+    <DAType id="Originator_1"><BDA name="orCat" type="OrCat" bType="Enum" /><BDA name="orIdent" bType="Octet64" /></DAType>
+    <DAType id="SPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+    <DAType id="DPCOperate_1"><BDA name="ctlVal" bType="Dbpos" type="Dbpos" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+
+    <EnumType id="Beh"><EnumVal ord="1">on</EnumVal><EnumVal ord="2">blocked</EnumVal><EnumVal ord="3">test</EnumVal><EnumVal ord="4">test/blocked</EnumVal><EnumVal ord="5">off</EnumVal></EnumType>
+    <EnumType id="HealthKind"><EnumVal ord="1">ok</EnumVal><EnumVal ord="2">warning</EnumVal><EnumVal ord="3">alarm</EnumVal></EnumType>
+    <EnumType id="CtlModels"><EnumVal ord="0">status-only</EnumVal><EnumVal ord="1">direct-with-normal-security</EnumVal><EnumVal ord="2">sbo-with-normal-security</EnumVal><EnumVal ord="3">direct-with-enhanced-security</EnumVal><EnumVal ord="4">sbo-with-enhanced-security</EnumVal></EnumType>
+    <EnumType id="OrCat"><EnumVal ord="0">not-supported</EnumVal><EnumVal ord="1">bay-control</EnumVal><EnumVal ord="2">station-control</EnumVal><EnumVal ord="3">remote-control</EnumVal><EnumVal ord="4">automatic-bay</EnumVal><EnumVal ord="5">automatic-station</EnumVal><EnumVal ord="6">automatic-remote</EnumVal><EnumVal ord="7">maintenance</EnumVal><EnumVal ord="8">process</EnumVal></EnumType>
+    <EnumType id="Dbpos"><EnumVal ord="0">intermediate</EnumVal><EnumVal ord="1">off</EnumVal><EnumVal ord="2">on</EnumVal><EnumVal ord="3">bad</EnumVal></EnumType>
+  </DataTypeTemplates>
+
+  <Communication>
+    <SubNetwork name="Subnet1" type="8-MMS">
+      <Text>Barramento de estacao - EmPowerElas</Text>
+      <!-- AJUSTAR: colocar o IP real da Pi 2 na rede da maquete -->
+      <ConnectedAP iedName="EmpElas_CTRL" apName="AP1">
+        <Address>
+          <PType type="IP">192.168.2.251</PType> <PType type="IP-SUBNET">255.255.255.0</PType>
+          <PType type="IP-GATEWAY">192.168.2.1</PType>
+          <PType type="OSI-AP-Title">1,3,9,999,2</PType>
+          <PType type="OSI-AE-Qualifier">12</PType>
+          <PType type="OSI-PSEL">00000001</PType>
+          <PType type="OSI-SSEL">0001</PType>
+          <PType type="OSI-TSEL">0001</PType>
+        </Address>
+      </ConnectedAP>
+    </SubNetwork>
+  </Communication>
+</SCL>
