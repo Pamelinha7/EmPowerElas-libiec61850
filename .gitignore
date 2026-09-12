@@ -1,22 +1,27 @@
-# Binarios compilados
-empelas_prot/empelas_prot
+# ===== Binarios compilados (recriados com 'make') =====
 empelas_ctrl/empelas_ctrl
+empelas_prot/empelas_prot
 *.o
-*.a
+*.out
 
-# Logs de execucao
-**/logs/
-*.log
+# ===== Binarios de teste =====
+empelas_ctrl/identifica_fita
+empelas_ctrl/testes/servo_test
+empelas_ctrl/testes/pin_test
+empelas_ctrl/testes/pin_on
+empelas_ctrl/testes/identifica_fita
 
-# Configuracao pessoal de editor
-**/.vscode/
+# ===== Arquivos soltos / criados por engano =====
+empelas_ctrl/import socket.py
 
-# Sistema operacional
-.DS_Store
-Thumbs.db
+# ===== Lixo de sistema / editor =====
+*.swp
 *~
+.vscode/
+.DS_Store
 
-# NOTA: static_model.c e static_model.h SAO versionados de proposito,
-# para que um clone limpo compile sem precisar de Java nem do genmodel.
-# Se voce alterar um arquivo .icd, rode 'make modelo' e commite os
-# arquivos gerados junto com o .icd - os dois precisam andar juntos.
+# ===== Dependencias que o setup.sh baixa e compila =====
+/deps/
+libiec61850-*/
+rpi_ws281x/
+WiringPi/
