@@ -1,6 +1,22 @@
-static_model.c
-static_model.h
+# Binarios compilados
 empelas_prot/empelas_prot
 empelas_ctrl/empelas_ctrl
 *.o
-logs/
+*.a
+
+# Logs de execucao
+**/logs/
+*.log
+
+# Configuracao pessoal de editor
+**/.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+*~
+
+# NOTA: static_model.c e static_model.h SAO versionados de proposito,
+# para que um clone limpo compile sem precisar de Java nem do genmodel.
+# Se voce alterar um arquivo .icd, rode 'make modelo' e commite os
+# arquivos gerados junto com o .icd - os dois precisam andar juntos.

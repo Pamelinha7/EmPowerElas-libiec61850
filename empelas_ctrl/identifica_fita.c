@@ -9,21 +9,21 @@
  * vindo do SCADA, com um atraso apos a atuacao - o sinal correndo pela
  * fibra depois da acao.
  *
- * Fita: dado no GPIO21 (fisico 40, PCM) DIRETO no GPIO (sem level shifter,
- * que a 800kHz atrasa o sinal e deixa a fita sempre acesa).
+ * Fita: dado no GPIO21 (fisico 40, PCM) via level shifter 3.3->5V.
  *
- * SERVOS: os tres servos sao comandados pelo modulo PCA9685 via I2C.
- * O PCA9685 gera o PWM em hardware proprio, entao os servos nao
- * disputam o PWM nem o temporizador da Pi - o que deixa o PCM livre
- * para a fita e elimina o tremor do PWM por software.
+ * SERVOS: o Raspberry tem apenas dois canais de PWM de hardware, e os
+ * pinos fisicos 33 e 35 compartilham o mesmo canal (PWM1) - portanto e
+ * impossivel ter os tres servos em hardware. O servo 1 fica no PWM de
+ * hardware (PWM0) e os outros dois usam PWM por software.
  *
- * O I2C precisa estar habilitado no sistema (raspi-config) e o modulo
- * deve aparecer no endereco 0x40 em 'sudo i2cdetect -y 1'.
+ * Isso funciona porque moverServo corta o sinal apos o movimento: o
+ * pulso so existe durante os 500 ms da manobra, e as chaves nao se
+ * movem ao mesmo tempo. Fora esse intervalo nao ha PWM nenhum, entao
+ * nao ha tremor.
  *
- * ALIMENTACAO: os servos sao alimentados pelo borne V+ do PCA9685, com
- * fonte externa de 5 V. Nunca pelo pino de 5 V da Pi - o pico de
- * corrente de partida derruba a placa. O terra da fonte precisa estar
- * ligado ao terra da Pi.
+ * ALIMENTACAO: nao alimente os servos pelo pino de 5V da Pi. Use fonte
+ * separada com o terra ligado ao da Pi, senao a placa reinicia sozinha
+ * no pico de corrente de partida.
  *
  * Compilar e rodar nesta Pi:
  *   make
@@ -40,36 +40,33 @@
 #include <wiringSerial.h>
 #include <string.h>
 #include <wiringPi.h>
-#include <wiringPiI2C.h>   // comunicacao com o PCA9685
+#include <softPwm.h>       // PWM por software (servos 2 e 3)
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "ws2811.h"          // biblioteca rpi_ws281x (link: libws2811.a)
 
-// ====== SERVOS DAS CHAVES SECCIONADORAS (XSWI1-3) via PCA9685 =====
-#define PCA_ADDR      0x40  // endereco I2C padrao do modulo
-#define PCA_MODE1     0x00  // registrador de modo
-#define PCA_PRESCALE  0xFE  // divisor de frequencia
-#define PCA_LED0_ON_L 0x06  // primeiro registrador do canal 0
+// ============ SERVOS DAS CHAVES SECCIONADORAS (XSWI1-3) =======
+// Servo 1 - PWM de hardware
+#define SERVO1_PIN    1     // wiringPi 1  = BCM18 = Físico 12 (PWM0)
+#define PWM_DIVISOR   192   // 19,2 MHz / 192 = 100 kHz
+#define PWM_RANGE     2000  // 100 kHz / 2000 = 50 Hz (periodo de 20 ms)
+#define TICK_FECHADO  100   // 100/2000 * 20 ms = 1,0 ms
+#define TICK_ABERTO   200   // 200/2000 * 20 ms = 2,0 ms
 
-// Canal do PCA9685 onde cada servo esta ligado (0 a 15)
-#define SERVO1_CH     0     // seccionadora 1
-#define SERVO2_CH     1     // seccionadora 2
-#define SERVO3_CH     2     // seccionadora 3
-
-// O PCA9685 divide cada periodo em 4096 passos. A 50 Hz o periodo e de
-// 20 ms, entao 1 passo = 20/4096 ms.
-#define PCA_FREQ      50.0f
-#define TICK_FECHADO  205   // ~1,0 ms
-#define TICK_ABERTO   410   // ~2,0 ms
-#define PCA_FULL_OFF  4096  // bit especial que desliga o canal por completo
+// Servos 2 e 3 - PWM por software
+#define SERVO2_PIN    23    // wiringPi 23 = BCM13 = Físico 33
+#define SERVO3_PIN    24    // wiringPi 24 = BCM19 = Físico 35
+#define SOFT_RANGE    200   // 200 passos de 100 us = 20 ms (50 Hz)
+#define SOFT_FECHADO  10    // 10 * 100 us = 1,0 ms
+#define SOFT_ABERTO   20    // 20 * 100 us = 2,0 ms
 
 // ================= LEDs DOS DISJUNTORES (XCBR) ===============
-#define LED_D1_VERDE  0   // wPi 0 = Fisico 11
-#define LED_D1_VERM   2   // wPi 2 = Fisico 13
-#define LED_D2_VERDE  3   // wPi 3 = Fisico 15
-#define LED_D2_VERM   4   // wPi 4 = Fisico 16
-#define LED_D3_VERDE  5   // wPi 5 = Fisico 18
-#define LED_D3_VERM   6   // wPi 6 = Fisico 22
+#define LED_D1_VERDE  0   // wPi 0 = Físico 11
+#define LED_D1_VERM   2   // wPi 2 = Físico 13
+#define LED_D2_VERDE  3   // wPi 3 = Físico 15
+#define LED_D2_VERM   4   // wPi 4 = Físico 16
+#define LED_D3_VERDE  5   // wPi 5 = Físico 18
+#define LED_D3_VERM   6   // wPi 6 = Físico 22
 
 // ================= FITA WS2811 (caminho da fibra) ============
 // A fita representa a fibra optica e tem DOIS comportamentos:
@@ -85,14 +82,15 @@
 //              retoma de onde parou - assim como uma mensagem de
 //              manobra tem prioridade sobre o trafego continuo.
 //
-// Os pedacos de fita sao encadeados em serie (saida de dados de um na
-// entrada do outro), com TODAS as setas no mesmo sentido, entao para a
-// Pi e uma corrente unica.
-#define FITA_GPIO       21        // GPIO21 = Fisico 40 (PCM)
+// Os dois pedacos de fita sao encadeados em serie (saida de dados de um
+// na entrada do outro), entao para a Pi e uma corrente unica.
+#define FITA_GPIO       21        // GPIO21 = Físico 40 (PCM)
 #define FITA_DMA        10        // canal de DMA da rpi_ws281x
-// ATENCAO: um "pixel" comanda TRES LEDs juntos. Conte os quadradinhos da
-// fita, divida por 3 e ajuste este numero. Os tempos abaixo sao por VOLTA
-// COMPLETA, entao a velocidade da animacao nao muda quando a fita cresce.
+// ATENCAO: um "pixel" comanda TRES LEDs juntos. O pedaco em teste tem
+// 18 quadradinhos = 6 pixels. Quando a fita definitiva for montada e os
+// dois pedacos emendados, conte os quadradinhos, divida por 3 e ajuste
+// este numero. Os tempos abaixo sao por VOLTA COMPLETA, entao a
+// velocidade da animacao nao muda quando a fita cresce.
 #define FITA_COUNT      6         // AJUSTE: total de pixels (quadradinhos / 3)
 #define FITA_FREQ       WS2811_TARGET_FREQ  // 800kHz
 #define FITA_BRILHO     128       // 0-255 (metade p/ reduzir corrente)
@@ -121,7 +119,6 @@ static int running = 0;
 static IedServer iedServer = NULL;
 static int activeConnections = 0;
 static volatile int rastroPendente = 0;   // sinaliza que um comando pediu o rastro
-static int pcaFd = -1;                    // descritor I2C do PCA9685
 
 // Estrutura da fita: gpionum 21 faz a lib usar PCM automaticamente.
 static ws2811_t fita = {
@@ -173,38 +170,19 @@ static void fitaDesenhaPulso(int pos, uint32_t cor, int cauda) {
     ws2811_render(&fita);
 }
 
-// Ajusta a frequencia de PWM do PCA9685. Exige colocar o chip em modo
-// sleep para escrever o prescaler, e DEPOIS ACORDAR (SLEEP=0), senao o
-// oscilador fica desligado e nao sai PWM nenhum - o servo nao mexe mesmo
-// com o modulo detectado no I2C.
-static void pcaSetFreq(int fd, float freq) {
-    int prescale = (int)(25000000.0f / (4096.0f * freq) - 1.0f + 0.5f);
-    int oldmode  = wiringPiI2CReadReg8(fd, PCA_MODE1);
-    int sleepmode = (oldmode & 0x7F) | 0x10;                 // SLEEP=1 p/ escrever o prescale
-    wiringPiI2CWriteReg8(fd, PCA_MODE1, sleepmode);
-    wiringPiI2CWriteReg8(fd, PCA_PRESCALE, prescale);
-    int wakemode = oldmode & ~0x10;                          // >>> GARANTE SLEEP=0 <<<
-    wiringPiI2CWriteReg8(fd, PCA_MODE1, wakemode);           // acorda o oscilador
-    delay(5);
-    wiringPiI2CWriteReg8(fd, PCA_MODE1, wakemode | 0xA0);    // restart + auto-increment, SLEEP=0
-}
-
-// Escreve o pulso de um canal. Cada canal ocupa 4 registradores.
-static void pcaSetPwm(int fd, int canal, int on, int off) {
-    int reg = PCA_LED0_ON_L + 4 * canal;
-    wiringPiI2CWriteReg8(fd, reg,     on  & 0xFF);
-    wiringPiI2CWriteReg8(fd, reg + 1, on  >> 8);
-    wiringPiI2CWriteReg8(fd, reg + 2, off & 0xFF);
-    wiringPiI2CWriteReg8(fd, reg + 3, off >> 8);
-}
-
-// Move um servo e corta o pulso em seguida. Sem o corte, o servo fica
-// tremendo e zumbindo enquanto estiver sob comando.
-static void moverServo(int canal, bool fechar) {
-    if (pcaFd < 0) return;
-    pcaSetPwm(pcaFd, canal, 0, fechar ? TICK_FECHADO : TICK_ABERTO);
+// Servo 1: PWM de hardware. O sinal e cortado apos o movimento para
+// eliminar o tremor do servo parado sob comando.
+static void moverServo1(bool fechar) {
+    pwmWrite(SERVO1_PIN, fechar ? TICK_FECHADO : TICK_ABERTO);
     delay(500);
-    pcaSetPwm(pcaFd, canal, 0, PCA_FULL_OFF);
+    pwmWrite(SERVO1_PIN, 0);
+}
+
+// Servos 2 e 3: PWM por software, mesmo principio.
+static void moverServoSoft(int pino, bool fechar) {
+    softPwmWrite(pino, fechar ? SOFT_FECHADO : SOFT_ABERTO);
+    delay(500);
+    softPwmWrite(pino, 0);
 }
 
 static void setLedsDisjuntor(int pinVerde, int pinVerm, bool fechado) {
@@ -306,19 +284,19 @@ static ControlHandlerResult controlHandlerForBinaryOutput(ControlAction action, 
         LOG_PRINT("[COMANDO] Recebido de: %s\n", clientIP);
 
         if (parameter == IEDMODEL_VAO_XSWI1_Pos) {
-            moverServo(SERVO1_CH, state);
+            moverServo1(state);
             LOG_PRINT("   >> Acao: XSWI1 (Seccionadora 1) %s\n", state ? "FECHADA" : "ABERTA");
             IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XSWI1_Pos_t, timestamp);
             IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XSWI1_Pos_stVal, value);
         }
         else if (parameter == IEDMODEL_VAO_XSWI2_Pos) {
-            moverServo(SERVO2_CH, state);
+            moverServoSoft(SERVO2_PIN, state);
             LOG_PRINT("   >> Acao: XSWI2 (Seccionadora 2) %s\n", state ? "FECHADA" : "ABERTA");
             IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XSWI2_Pos_t, timestamp);
             IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XSWI2_Pos_stVal, value);
         }
         else if (parameter == IEDMODEL_VAO_XSWI3_Pos) {
-            moverServo(SERVO3_CH, state);
+            moverServoSoft(SERVO3_PIN, state);
             LOG_PRINT("   >> Acao: XSWI3 (Seccionadora 3) %s\n", state ? "FECHADA" : "ABERTA");
             IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XSWI3_Pos_t, timestamp);
             IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XSWI3_Pos_stVal, value);
@@ -374,21 +352,28 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // PCA9685 - controlador de PWM dos tres servos, via I2C
-    pcaFd = wiringPiI2CSetup(PCA_ADDR);
-    if (pcaFd < 0) {
-        LOG_PRINT("[SERVO] ERRO: PCA9685 nao encontrado no endereco 0x%02X.\n", PCA_ADDR);
-        LOG_PRINT("[SERVO] Habilite o I2C (raspi-config) e confira com 'sudo i2cdetect -y 1'.\n");
-    } else {
-        pcaSetFreq(pcaFd, PCA_FREQ);
-        LOG_PRINT("[SERVO] PCA9685 ok em 0x%02X, %d Hz.\n", PCA_ADDR, (int)PCA_FREQ);
-    }
+    // ORDEM IMPORTA: o softPwmCreate cria threads que mexem no subsistema
+    // de PWM, e pwmSetClock/pwmSetRange sao globais no wiringPi. Se o PWM
+    // por software for iniciado DEPOIS da configuracao do PWM de hardware,
+    // o servo 1 recebe pulso com periodo errado e nao se move.
+    // Por isso os servos 2 e 3 sao criados primeiro.
 
-    // Posicao inicial: todas as chaves fechadas, uma de cada vez para
-    // nao somar corrente de partida
-    moverServo(SERVO1_CH, true);
-    moverServo(SERVO2_CH, true);
-    moverServo(SERVO3_CH, true);
+    // Servos 2 e 3 - PWM por software
+    if (softPwmCreate(SERVO2_PIN, 0, SOFT_RANGE) != 0)
+        LOG_PRINT("[SERVO] softPwmCreate falhou no pino %d\n", SERVO2_PIN);
+    if (softPwmCreate(SERVO3_PIN, 0, SOFT_RANGE) != 0)
+        LOG_PRINT("[SERVO] softPwmCreate falhou no pino %d\n", SERVO3_PIN);
+
+    // Servo 1 - PWM de hardware (configurado por ultimo)
+    pinMode(SERVO1_PIN, PWM_OUTPUT);
+    pwmSetMode(PWM_MODE_MS);
+    pwmSetClock(PWM_DIVISOR);
+    pwmSetRange(PWM_RANGE);
+
+    // Posicao inicial: todas as chaves fechadas, uma de cada vez
+    moverServo1(true);
+    moverServoSoft(SERVO2_PIN, true);
+    moverServoSoft(SERVO3_PIN, true);
 
     // LEDs (todos ABERTOS no boot = vermelho aceso)
     pinMode(LED_D1_VERDE, OUTPUT); pinMode(LED_D1_VERM, OUTPUT);
@@ -461,7 +446,7 @@ int main(int argc, char** argv) {
     }
 
     LOG_PRINT("\n--- EmpElas_CTRL : CONTROLE DE VAO (LEDs + servo + fita) ---\n");
-    LOG_PRINT("[STATUS] Servos: canais %d, %d e %d do PCA9685 | LEDs D1-D3 | Fita GPIO%d (%d px)\n", SERVO1_CH, SERVO2_CH, SERVO3_CH, FITA_GPIO, FITA_COUNT);
+    LOG_PRINT("[STATUS] Servos: P%d (hw), P%d e P%d (sw) | LEDs D1-D3 | Fita GPIO%d (%d px)\n", SERVO1_PIN, SERVO2_PIN, SERVO3_PIN, FITA_GPIO, FITA_COUNT);
     LOG_PRINT("[STATUS] Rodando na porta %d. Aguardando comandos do SCADA...\n", tcpPort);
 
     running = 1;
@@ -473,11 +458,9 @@ int main(int argc, char** argv) {
     }
 
     LOG_PRINT("\n[SISTEMA] Encerrando...\n");
-    if (pcaFd >= 0) {
-        pcaSetPwm(pcaFd, SERVO1_CH, 0, PCA_FULL_OFF);
-        pcaSetPwm(pcaFd, SERVO2_CH, 0, PCA_FULL_OFF);
-        pcaSetPwm(pcaFd, SERVO3_CH, 0, PCA_FULL_OFF);
-    }
+    pwmWrite(SERVO1_PIN, 0);
+    softPwmWrite(SERVO2_PIN, 0);
+    softPwmWrite(SERVO3_PIN, 0);
     digitalWrite(LED_D1_VERDE, LOW); digitalWrite(LED_D1_VERM, LOW);
     digitalWrite(LED_D2_VERDE, LOW); digitalWrite(LED_D2_VERM, LOW);
     digitalWrite(LED_D3_VERDE, LOW); digitalWrite(LED_D3_VERM, LOW);

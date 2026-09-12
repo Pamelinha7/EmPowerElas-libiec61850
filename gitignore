@@ -1,0 +1,27 @@
+# ===== Binarios compilados (recriados com 'make') =====
+empelas_ctrl/empelas_ctrl
+empelas_prot/empelas_prot
+*.o
+*.a.tmp
+*.out
+
+# ===== Binarios de teste (dentro de empelas_ctrl/testes/) =====
+# Mantem os .c e .h, ignora os executaveis sem extensao
+empelas_ctrl/testes/servo_test
+empelas_ctrl/testes/servo_test3
+empelas_ctrl/testes/pin_test
+empelas_ctrl/testes/pin_on
+empelas_ctrl/testes/identifica_fita
+
+# ===== Lixo de sistema / editor =====
+*.swp
+*~
+.vscode/
+.DS_Store
+
+# ===== Dependencias que o setup.sh baixa e compila =====
+# (nao versionar o codigo-fonte de terceiros; o setup.sh clona)
+/deps/
+libiec61850-*/
+rpi_ws281x/
+WiringPi/

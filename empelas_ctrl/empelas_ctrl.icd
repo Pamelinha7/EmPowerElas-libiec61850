@@ -34,8 +34,14 @@
             <DOI name="Beh" /> <DOI name="Health" /> <DOI name="GenTrk" /> <DOI name="UrcbTrk" /> <DOI name="BrcbTrk" /> <DOI name="GocbTrk" />
           </LN>
 
-          <!-- Chave seccionadora (servo SG90) -->
+          <!-- Chaves seccionadoras (servos SG90) -->
           <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="1" prefix="">
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+          </LN>
+          <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="2" prefix="">
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+          </LN>
+          <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="3" prefix="">
             <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
           </LN>
 

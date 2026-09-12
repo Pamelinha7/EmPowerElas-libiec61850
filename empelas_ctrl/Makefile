@@ -1,39 +1,51 @@
-# Nome do executavel
+# Makefile - EmpElas_CTRL (Pi 2: controle de vao)
+#
+# Compila contra a libiec61850 e a rpi_ws281x INSTALADAS NO SISTEMA, nao
+# contra as arvores de codigo delas. Por isso este diretorio pode ficar
+# em qualquer lugar - inclusive num clone do repositorio.
+#
+#   make            compila
+#   make modelo     regenera static_model.c/.h a partir do .icd
+#   make clean      apaga o binario e os objetos
+#
+# Se as bibliotecas tiverem sido instaladas em outro prefixo:
+#   make PREFIX=/opt/libiec61850
+
+PREFIX ?= /usr/local
+
 TARGET = empelas_ctrl
+SRCS   = server_ctrl.c static_model.c
+ICD    = empelas_ctrl.icd
 
-# Compilacao dos arquivos C
-SRCS = server_ctrl.c static_model.c
+CC      = gcc
+CFLAGS  = -g -Wall -O2
+CPPFLAGS = -I$(PREFIX)/include/libiec61850 -I$(PREFIX)/include
+LDFLAGS  = -L$(PREFIX)/lib
 
-# Flags do Compilador (todos os caminhos -I para os headers)
-# -I. no fim: acha os headers da fita (ws2811.h) copiados para a pasta
-CFLAGS = -g \
--I. \
--I../../config \
--I../../hal/inc \
--I../../src/common/inc \
--I../../src/mms/inc \
--I../../src/mms/inc_private \
--I../../src/mms/asn1 \
--I../../src/iec61850/inc \
--I../../src/iec61850/inc_private \
--I../../src/goose \
--I../../src/sampled_values \
--I../../src/logging \
--I../../src/tls \
--I../../src/r_session
+# ws2811: fita enderecavel. wiringPi: GPIO dos LEDs e I2C do PCA9685.
+LIBS = -liec61850 -lws2811 -lwiringPi -lpthread -lm -lrt
 
-# Flags do Linker (caminhos -L). -L. acha a libws2811.a na pasta atual.
-LDFLAGS = -L. -L../../build -L../../build/src -L../../build/hal -L/usr/local/lib
+# Algumas compilacoes da libiec61850 incluem suporte a log em sqlite.
+# Se o link reclamar de simbolos sqlite3_*, mantenha esta linha.
+# Se reclamar que nao encontra -lsqlite3, comente-a.
+LIBS += -lsqlite3
 
-# Bibliotecas a linkar. -lws2811 = fita; -lrt = usado por ela.
-LDLIBS = -liec61850 -lws2811 -lpthread -lm -lrt -lsqlite3 -lwiringPi
-
-# --- Regras do Make ---
+.PHONY: all modelo clean
 
 all: $(TARGET)
 
 $(TARGET): $(SRCS)
-	gcc $(CFLAGS) -o $(TARGET) $(SRCS) $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(SRCS) -o $@ $(LDFLAGS) $(LIBS)
+	@echo ""
+	@echo "Pronto. Rode com:  sudo ./$(TARGET)"
+
+# Regenera o modelo a partir do SCL. Necessario apenas quando o .icd muda.
+# Os arquivos gerados sao versionados, entao um clone limpo ja compila
+# sem precisar deste alvo.
+modelo:
+	java -jar ../genmodel.jar $(ICD)
+	@echo ""
+	@echo "Modelo regenerado. Recompile com 'make' e reimporte o $(ICD) no SCADA."
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) *.o
