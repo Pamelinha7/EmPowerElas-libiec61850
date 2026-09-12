@@ -114,5 +114,5 @@ make
 ```
 
 ## Créditos
-
+Karina Santos e Pamela Moura
 Projeto de extensão da Universidade Federal Fluminense (UFF).
