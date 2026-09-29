@@ -9,7 +9,19 @@
  * Os mesmos valores sao publicados no modelo IEC 61850 (MMXU1) para o
  * SCADA ler.
  *
+ * PROTECAO E GOOSE
+ * O supervisorio aplica uma falta escrevendo em GGIO1.SPCSO1. A corrente
+ * simulada sobe acima do ajuste, a protecao de sobrecorrente (PTOC1) atua,
+ * e o sinal de trip (PTRC1.Tr) e publicado por GOOSE para o IED de
+ * controle de vao, que abre o disjuntor.
+ *
+ * A publicacao e automatica: o PTRC1.Tr.general faz parte do conjunto de
+ * dados dsTrip, associado ao bloco gcbTrip no .icd. Toda vez que o valor
+ * muda, a biblioteca envia o GOOSE e o repete em intervalos crescentes;
+ * sem mudanca, reenvia a cada 1 s como sinal de vida.
+ *
  * Compilar e rodar nesta Pi:
+ *   java -jar genmodel.jar empelas_prot.icd   (sempre que o .icd mudar)
  *   make
  *   sudo ./empelas_prot
  */
@@ -41,6 +53,23 @@
 #define LCD2_D6  22  // wPi 22 = Físico 31
 #define LCD2_D7  27  // wPi 27 = Físico 36
 
+// ================= GRANDEZAS E PROTECAO =====================
+#define TC_BASE        100.0f   // corrente normal (A)
+#define TP_BASE        500.0f   // tensao normal (kV)
+#define TC_FALTA       800.0f   // corrente durante a falta simulada (A)
+#define PTOC_PARTIDA   300.0f   // ajuste da sobrecorrente instantanea (A)
+
+// A protecao e avaliada a cada 50 ms; os displays e as medicoes,
+// a cada 1 s. Assim o trip nao espera o ciclo lento dos displays.
+#define CICLO_MS        50
+#define CICLOS_POR_SEG  (1000 / CICLO_MS)
+
+// Interface de rede onde o GOOSE e publicado. Precisa ser o CABO:
+// o GOOSE nao atravessa o wi-fi de forma confiavel.
+#ifndef INTERFACE_GOOSE
+#define INTERFACE_GOOSE "eth0"
+#endif
+
 // ============================================================
 
 #include "static_model.h"
@@ -50,58 +79,147 @@ static IedServer iedServer = NULL;
 static int lcd1 = -1;   // handle do display 1 (TC)
 static int lcd2 = -1;   // handle do display 2 (TP)
 
+static volatile int faltaAtiva = 0;   // escrita pelo supervisorio via GGIO1.SPCSO1
+static bool tripAtivo = false;        // estado atual do trip publicado
+
 void sigint_handler(int signalId) { running = 0; }
 
 #define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
 
-// Thread dos displays: simula TC e TP, escreve um em cada LCD e atualiza o MMXU1.
-void* display_thread(void* arg) {
-    const float TC_BASE = 100.0f;  // corrente base (A)
-    const float TP_BASE = 500.0f;  // tensao base (kV)
+// ----------------------------------------------------------------
+// Protecao de sobrecorrente instantanea (funcao ANSI 50).
+//
+// So escreve no modelo quando o estado MUDA. Isso importa: cada escrita
+// no PTRC1.Tr dispara um GOOSE novo, e publicar o mesmo valor a cada
+// 50 ms inundaria a rede sem necessidade.
+//
+// O selo de tempo e o do instante da deteccao, recebido como parametro,
+// e nao o do momento da publicacao.
+// ----------------------------------------------------------------
+static void avaliarProtecao(float corrente, uint64_t ts) {
+    bool deveAtuar = (corrente > PTOC_PARTIDA);
+    if (deveAtuar == tripAtivo) return;
+
+    tripAtivo = deveAtuar;
+
+    IedServer_lockDataModel(iedServer);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, deveAtuar);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_t, ts);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, deveAtuar);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_t, ts);
+    // Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, deveAtuar);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_t, ts);
+    IedServer_unlockDataModel(iedServer);
+
+    if (deveAtuar)
+        LOG_PRINT("[PROTECAO] Sobrecorrente: %.1f A > %.1f A. TRIP publicado por GOOSE.\n",
+                  corrente, PTOC_PARTIDA);
+    else
+        LOG_PRINT("[PROTECAO] Corrente normalizada. Trip retirado, GOOSE publicado.\n");
+}
+
+static void publicarMedicoes(float tc, float tp, uint64_t ts) {
+    uint16_t goodQuality = 0x0000;
+    IedServer_lockDataModel(iedServer);
+    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_instMag_f, tc);
+    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_mag_f, tc);
+    IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_q, goodQuality);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_t, ts);
+    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_instMag_f, tp);
+    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_mag_f, tp);
+    IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_q, goodQuality);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_t, ts);
+    IedServer_unlockDataModel(iedServer);
+}
+
+static void atualizarDisplays(float tc, float tp) {
     char buf[17];
 
+    // LCD1: corrente. Durante o trip, a primeira linha avisa o envio do GOOSE.
+    if (lcd1 >= 0) {
+        lcdPosition(lcd1, 0, 0);
+        lcdPuts(lcd1, tripAtivo ? "TRIP-GOOSE ENV. " : "CORRENTE (TC)   ");
+        snprintf(buf, sizeof(buf), "   %6.1f A     ", tc);
+        buf[16] = '\0';
+        lcdPosition(lcd1, 0, 1);
+        lcdPuts(lcd1, buf);
+    }
+
+    // LCD2: tensao
+    if (lcd2 >= 0) {
+        lcdPosition(lcd2, 0, 0);
+        lcdPuts(lcd2, "TENSAO (TP)     ");
+        snprintf(buf, sizeof(buf), "  %6.1f kV     ", tp);
+        buf[16] = '\0';
+        lcdPosition(lcd2, 0, 1);
+        lcdPuts(lcd2, buf);
+    }
+}
+
+// Thread principal da medicao e da protecao.
+void* display_thread(void* arg) {
+    float tcNormal = TC_BASE;
+    float tp = TP_BASE;
+    int ciclo = 0;
+    int faltaAnterior = -1;
+
     while (running) {
-        float tc = TC_BASE + ((rand() % 200) - 100) / 10.0f; // ~90.0 a 110.0 A
-        float tp = TP_BASE + ((rand() % 100) - 50)  / 10.0f; // ~495.0 a 505.0 kV
+        int faltaAgora = faltaAtiva;
+        bool novoSegundo = (ciclo % CICLOS_POR_SEG == 0);
 
-        // --- Atualiza o modelo IEC 61850 (MMXU1) para o SCADA ---
+        // Valores normais com pequena variacao, renovados a cada segundo
+        if (novoSegundo) {
+            tcNormal = TC_BASE + ((rand() % 200) - 100) / 10.0f;   // ~90 a 110 A
+            tp       = TP_BASE + ((rand() % 100) - 50)  / 10.0f;   // ~495 a 505 kV
+        }
+
+        float tc = faltaAgora ? TC_FALTA : tcNormal;
         uint64_t ts = Hal_getTimeInMs();
-        uint16_t goodQuality = 0x0000;
-        IedServer_lockDataModel(iedServer);
-        IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_instMag_f, tc);
-        IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_mag_f, tc);
-        IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_q, goodQuality);
-        IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_t, ts);
-        IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_instMag_f, tp);
-        IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_mag_f, tp);
-        IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_q, goodQuality);
-        IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_t, ts);
-        IedServer_unlockDataModel(iedServer);
 
-        // --- LCD1: TC (corrente) ---
-        if (lcd1 >= 0) {
-            lcdPosition(lcd1, 0, 0);
-            lcdPuts(lcd1, "CORRENTE (TC)   ");
-            snprintf(buf, sizeof(buf), "   %6.1f A     ", tc);
-            buf[16] = '\0';
-            lcdPosition(lcd1, 0, 1);
-            lcdPuts(lcd1, buf);
+        // A protecao roda em todo ciclo de 50 ms
+        avaliarProtecao(tc, ts);
+
+        // Medicoes e displays: a cada segundo, ou na hora em que a falta muda
+        if (novoSegundo || faltaAgora != faltaAnterior) {
+            publicarMedicoes(tc, tp, ts);
+            atualizarDisplays(tc, tp);
+            LOG_PRINT("[SIM] TC: %.1f A | TP: %.1f kV%s\n", tc, tp, faltaAgora ? "  <- FALTA" : "");
+            faltaAnterior = faltaAgora;
         }
 
-        // --- LCD2: TP (tensao) ---
-        if (lcd2 >= 0) {
-            lcdPosition(lcd2, 0, 0);
-            lcdPuts(lcd2, "TENSAO (TP)     ");
-            snprintf(buf, sizeof(buf), "  %6.1f kV     ", tp);
-            buf[16] = '\0';
-            lcdPosition(lcd2, 0, 1);
-            lcdPuts(lcd2, buf);
-        }
-
-        LOG_PRINT("[SIM] TC: %.1f A | TP: %.1f kV\n", tc, tp);
-        Thread_sleep(1000);
+        ciclo++;
+        Thread_sleep(CICLO_MS);
     }
     return NULL;
+}
+
+// ----------------------------------------------------------------
+// Botao "aplicar falta" do supervisorio: GGIO1.SPCSO1
+//   true  -> aplica a falta (corrente sobe para TC_FALTA)
+//   false -> retira a falta
+// ----------------------------------------------------------------
+static CheckHandlerResult checkHandlerFalta(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
+    return CONTROL_ACCEPTED;
+}
+
+static ControlHandlerResult controlHandlerFalta(ControlAction action, void* parameter, MmsValue* value, bool test) {
+    if (MmsValue_getType(value) != MMS_BOOLEAN)
+        return CONTROL_RESULT_FAILED;
+
+    bool aplicar = MmsValue_getBoolean(value);
+    faltaAtiva = aplicar ? 1 : 0;
+
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1_t, Hal_getTimeInMs());
+    IedServer_updateAttributeValue(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1_stVal, value);
+
+    ClientConnection con = ControlAction_getClientConnection(action);
+    LOG_PRINT("--------------------------------------------------\n");
+    LOG_PRINT("[COMANDO] %s a falta (origem: %s)\n", aplicar ? "APLICAR" : "RETIRAR",
+              con ? ClientConnection_getPeerAddress(con) : "desconhecida");
+    LOG_PRINT("--------------------------------------------------\n");
+
+    return CONTROL_RESULT_OK;
 }
 
 int main(int argc, char** argv) {
@@ -128,10 +246,13 @@ int main(int argc, char** argv) {
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
 
-    // ATENCAO: "lo" e a interface de loopback. Quando o GOOSE entre as duas
-    // Pis for implementado, isto precisa virar a interface de rede real
-    // (ex.: "eth0"), senao a mensagem nunca sai desta placa.
-    IedServer_setGooseInterfaceId(iedServer, "lo");
+    // Botao de falta do supervisorio
+    IedServer_updateCtlModel(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, CONTROL_MODEL_DIRECT_NORMAL);
+    IedServer_setPerformCheckHandler(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, checkHandlerFalta, NULL);
+    IedServer_setControlHandler(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, (ControlHandler) controlHandlerFalta, NULL);
+
+    // GOOSE sai pelo cabo
+    IedServer_setGooseInterfaceId(iedServer, INTERFACE_GOOSE);
     IedServer_start(iedServer, tcpPort);
     if (!IedServer_isRunning(iedServer)) {
         LOG_PRINT("Falha ao iniciar servidor!\n");
@@ -139,9 +260,14 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    LOG_PRINT("\n--- EmpElas_PROT : MEDICAO (TC/TP simulados) ---\n");
+    // Habilita a publicacao de todos os blocos GOOSE do modelo (gcbTrip)
+    IedServer_enableGoosePublishing(iedServer);
+
+    LOG_PRINT("\n--- EmpElas_PROT : MEDICAO E PROTECAO ---\n");
     LOG_PRINT("[STATUS] LCD1 (TC) %s | LCD2 (TP) %s\n", (lcd1 >= 0) ? "OK" : "FALHOU", (lcd2 >= 0) ? "OK" : "FALHOU");
-    LOG_PRINT("[STATUS] Rodando na porta %d. SCADA le TC/TP em MEDPROT/MMXU1 (Amp/Vol).\n", tcpPort);
+    LOG_PRINT("[STATUS] Rodando na porta %d.\n", tcpPort);
+    LOG_PRINT("[GOOSE]  Publicando gcbTrip em %s (APPID 0x1001).\n", INTERFACE_GOOSE);
+    LOG_PRINT("[PROTECAO] Sobrecorrente instantanea, partida em %.0f A.\n", PTOC_PARTIDA);
 
     running = 1;
     Thread displayThread = Thread_create((ThreadExecutionFunction)display_thread, NULL, true);
@@ -152,6 +278,7 @@ int main(int argc, char** argv) {
     }
 
     LOG_PRINT("\n[SISTEMA] Encerrando...\n");
+    IedServer_disableGoosePublishing(iedServer);
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);
     close(dev_null);
