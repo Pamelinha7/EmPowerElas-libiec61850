@@ -5,17 +5,27 @@
  * LEDs dos disjuntores (XCBR1-3), tres servos das chaves seccionadoras
  * (XSWI1-3) e fita enderecavel WS2811 representando o caminho da fibra.
  *
- * A fita (12V, ~50 pixels) acende progressivamente a qualquer comando
- * vindo do SCADA, com um atraso apos a atuacao - o sinal correndo pela
- * fibra depois da acao.
+ * FITA DA FIBRA OPTICA (WS2811, 12 V)
+ * Representa a comunicacao, com tres comportamentos:
+ *   - pulso lento ciano, continuo: o trafego de medicao, que nunca para;
+ *   - rastro ambar: um comando chegando do SCADA (MMS);
+ *   - rastro vermelho: o TRIP chegando por GOOSE do EmpElas_PROT.
  *
- * Fita: dado no GPIO21 (fisico 40, PCM) DIRETO no GPIO (sem level shifter,
- * que a 800kHz atrasa o sinal e deixa a fita sempre acesa).
+ * Dado no GPIO18 (fisico 12, PWM), DIRETO no GPIO (sem level shifter,
+ * que a 800kHz atrasa o sinal e deixa a fita sempre acesa). Usa o PWM
+ * da Pi, que ficou livre quando os servos foram para o PCA9685. O audio
+ * analogico da Pi tambem usa o PWM, por isso precisa estar desligado.
+ *
+ * GOOSE DE TRIP
+ * Este IED assina o GOOSE gcbTrip publicado pelo EmpElas_PROT. Quando
+ * chega um trip novo, o disjuntor 1 abre e a fita mostra a mensagem.
+ * Quando o trip e retirado, o disjuntor CONTINUA ABERTO: quem fecha e
+ * o operador, pelo SCADA, como numa subestacao real.
  *
  * SERVOS: os tres servos sao comandados pelo modulo PCA9685 via I2C.
  * O PCA9685 gera o PWM em hardware proprio, entao os servos nao
- * disputam o PWM nem o temporizador da Pi - o que deixa o PCM livre
- * para a fita e elimina o tremor do PWM por software.
+ * disputam o PWM nem o temporizador da Pi - o que deixa o PWM da Pi
+ * livre para a fita e elimina o tremor do PWM por software.
  *
  * O I2C precisa estar habilitado no sistema (raspi-config) e o modulo
  * deve aparecer no endereco 0x40 em 'sudo i2cdetect -y 1'.
@@ -44,6 +54,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "ws2811.h"          // biblioteca rpi_ws281x (link: libws2811.a)
+#include "goose_receiver.h"  // recepcao de GOOSE (libiec61850)
+#include "goose_subscriber.h"
 
 // ====== SERVOS DAS CHAVES SECCIONADORAS (XSWI1-3) via PCA9685 =====
 #define PCA_ADDR      0x40  // endereco I2C padrao do modulo
@@ -88,18 +100,19 @@
 // Os pedacos de fita sao encadeados em serie (saida de dados de um na
 // entrada do outro), com TODAS as setas no mesmo sentido, entao para a
 // Pi e uma corrente unica.
-#define FITA_GPIO       21        // GPIO21 = Fisico 40 (PCM)
+#define FITA_GPIO       18        // GPIO18 = Fisico 12 (PWM) - fita da fibra optica
 #define FITA_DMA        10        // canal de DMA da rpi_ws281x
 // ATENCAO: um "pixel" comanda TRES LEDs juntos. Conte os quadradinhos da
 // fita, divida por 3 e ajuste este numero. Os tempos abaixo sao por VOLTA
 // COMPLETA, entao a velocidade da animacao nao muda quando a fita cresce.
-#define FITA_COUNT      6         // AJUSTE: total de pixels (quadradinhos / 3)
+#define FITA_COUNT      19         // AJUSTE: total de pixels (quadradinhos / 3)
 #define FITA_FREQ       WS2811_TARGET_FREQ  // 800kHz
 #define FITA_BRILHO     128       // 0-255 (metade p/ reduzir corrente)
 
 // Cores no formato 0x00RRGGBB
 #define COR_MEDICAO     0x00003848  // ciano discreto - trafego continuo
-#define COR_COMANDO     0x00FFB020  // ambar forte - mensagem de manobra
+#define COR_COMANDO     0x00FFB020  // ambar forte - comando do SCADA (MMS)
+#define COR_TRIP        0x00FF0000  // vermelho - trip chegando por GOOSE
 
 // Tempo de uma volta completa na fita, em ms
 #define MED_VOLTA_MS    3000      // medicao: lenta, para nao competir com a atencao
@@ -113,6 +126,27 @@
 // Zero porque, na realidade, a mensagem viaja ANTES do equipamento operar.
 #define FITA_DELAY_MS   0
 
+// ================= GOOSE DE TRIP (vindo do EmpElas_PROT) =========
+// Estes valores precisam ser IGUAIS aos do empelas_prot.icd.
+#define GOOSE_INTERFACE   "eth0"                                  // o CABO; GOOSE nao atravessa wi-fi
+#define GOOSE_TRIP_REF    "EmpElas_PROTMEDPROT/LLN0$GO$gcbTrip"   // bloco GOOSE do IED de protecao
+#define GOOSE_TRIP_APPID  0x1001                                  // APPID do .icd
+// Endereco de destino (MAC-Address do .icd). Informar o endereco faz a
+// placa de rede aceitar esse grupo; sem ele, a mensagem e descartada
+// antes de chegar ao programa - foi o que aconteceu no primeiro teste.
+static uint8_t GOOSE_TRIP_DSTMAC[6] = {0x01, 0x0c, 0xcd, 0x01, 0x00, 0x01};
+
+// Qual disjuntor o trip abre. Para trocar, mude as quatro linhas juntas.
+#define DJ_TRIP_NOME      "Disjuntor 1 (XCBR1)"
+#define DJ_TRIP_VERDE     LED_D1_VERDE
+#define DJ_TRIP_VERM      LED_D1_VERM
+#define DJ_TRIP_STVAL     IEDMODEL_VAO_XCBR1_Pos_stVal
+#define DJ_TRIP_T         IEDMODEL_VAO_XCBR1_Pos_t
+
+// Tipos de rastro na fita (valor de rastroPendente)
+#define RASTRO_COMANDO    1
+#define RASTRO_TRIP       2
+
 // ==============================================================
 
 #include "static_model.h"
@@ -120,10 +154,12 @@
 static int running = 0;
 static IedServer iedServer = NULL;
 static int activeConnections = 0;
-static volatile int rastroPendente = 0;   // sinaliza que um comando pediu o rastro
+static volatile int rastroPendente = 0;   // 0 = nada; RASTRO_COMANDO ou RASTRO_TRIP
+static GooseReceiver gooseReceiver = NULL;
+static int64_t ultimoStNum = -1;          // ultimo estado de GOOSE ja tratado
 static int pcaFd = -1;                    // descritor I2C do PCA9685
 
-// Estrutura da fita: gpionum 21 faz a lib usar PCM automaticamente.
+// Estrutura da fita: gpionum 18 faz a lib usar o PWM automaticamente.
 static ws2811_t fita = {
     .freq = FITA_FREQ,
     .dmanum = FITA_DMA,
@@ -227,16 +263,19 @@ void* fita_thread(void* arg) {
     while (running) {
 
         if (rastroPendente) {
+            int tipo = rastroPendente;
             rastroPendente = 0;
+            uint32_t cor = (tipo == RASTRO_TRIP) ? COR_TRIP : COR_COMANDO;
 
             if (FITA_DELAY_MS > 0) Thread_sleep(FITA_DELAY_MS);
 
-            // Rastro do comando: atravessa a fita uma vez, do inicio ao fim
+            // Rastro da mensagem: atravessa a fita uma vez, do inicio ao fim
             for (int i = 0; i < FITA_COUNT && running; i++) {
-                fitaDesenhaPulso(i, COR_COMANDO, CMD_CAUDA);
+                fitaDesenhaPulso(i, cor, CMD_CAUDA);
                 Thread_sleep(cmdPassoMs);
             }
-            LOG_PRINT("[FITA] Mensagem de manobra percorreu a fibra.\n");
+            LOG_PRINT("[FITA] %s percorreu a fibra.\n",
+                      (tipo == RASTRO_TRIP) ? "Trip por GOOSE" : "Comando do SCADA");
 
             // Volta ao pulso de medicao de onde ele estava
             continue;
@@ -248,6 +287,67 @@ void* fita_thread(void* arg) {
         Thread_sleep(medPassoMs);
     }
     return NULL;
+}
+
+// ----------------------------------------------------------------
+// Abre o disjuntor comandado pelo trip: LEDs e posicao no modelo.
+// Roda na thread de recepcao do GOOSE, por isso trava o modelo antes
+// de escrever nele.
+// ----------------------------------------------------------------
+static void abrirDisjuntorPorTrip(void) {
+    setLedsDisjuntor(DJ_TRIP_VERDE, DJ_TRIP_VERM, false);
+
+    // Mesma convencao dos comandos do SCADA neste projeto: 1 = aberto,
+    // 2 = fechado (valor lido com MmsValue_getBitStringAsInteger).
+    // Nao usar IedServer_updateDbposValue aqui: ela codifica os bits na
+    // ordem inversa, e o SCADA passaria a ler "2" (fechado) apos o trip.
+    MmsValue* posAberta = MmsValue_newBitString(2);
+    MmsValue_setBitStringFromInteger(posAberta, 1);
+
+    IedServer_lockDataModel(iedServer);
+    IedServer_updateAttributeValue(iedServer, DJ_TRIP_STVAL, posAberta);
+    IedServer_updateUTCTimeAttributeValue(iedServer, DJ_TRIP_T, Hal_getTimeInMs());
+    IedServer_unlockDataModel(iedServer);
+
+    MmsValue_delete(posAberta);
+}
+
+// ----------------------------------------------------------------
+// Chamada a cada GOOSE de trip recebido.
+//
+// O GOOSE repete a mesma mensagem varias vezes de proposito (sqNum sobe,
+// stNum fica igual). So o stNum novo indica mudanca de estado, entao so
+// ele e tratado - as repeticoes sao ignoradas.
+// ----------------------------------------------------------------
+static void gooseTripListener(GooseSubscriber sub, void* parameter) {
+    uint32_t stNum = GooseSubscriber_getStNum(sub);
+    if ((int64_t) stNum == ultimoStNum) return;          // repeticao do mesmo estado
+
+    bool primeira = (ultimoStNum < 0);
+    ultimoStNum = stNum;
+
+    MmsValue* valores = GooseSubscriber_getDataSetValues(sub);
+    MmsValue* tr = valores ? MmsValue_getElement(valores, 0) : NULL;
+    if (tr == NULL || MmsValue_getType(tr) != MMS_BOOLEAN) {
+        LOG_PRINT("[GOOSE] Mensagem com formato inesperado (stNum=%u), ignorada.\n", stNum);
+        return;
+    }
+
+    if (MmsValue_getBoolean(tr)) {
+        rastroPendente = RASTRO_TRIP;                    // a fita mostra a mensagem
+        abrirDisjuntorPorTrip();
+        LOG_PRINT("--------------------------------------------------\n");
+        LOG_PRINT("[GOOSE] TRIP recebido do EmpElas_PROT (stNum=%u)\n", stNum);
+        LOG_PRINT("   >> Acao: %s ABERTO pela protecao\n", DJ_TRIP_NOME);
+        LOG_PRINT("--------------------------------------------------\n");
+    }
+    else if (primeira) {
+        LOG_PRINT("[GOOSE] Assinatura do trip ativa (stNum=%u, sem trip).\n", stNum);
+    }
+    else {
+        LOG_PRINT("[GOOSE] Trip retirado (stNum=%u). %s continua aberto: fechar pelo SCADA.\n",
+                  stNum, DJ_TRIP_NOME);
+    }
 }
 
 static void connectionHandler(IedServer self, ClientConnection connection, bool connected, void* parameter) {
@@ -342,8 +442,8 @@ static ControlHandlerResult controlHandlerForBinaryOutput(ControlAction action, 
             IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XCBR3_Pos_stVal, value);
         }
 
-        // Qualquer comando dispara o rastro da fita (a thread aplica o delay)
-        rastroPendente = 1;
+        // Qualquer comando do SCADA dispara o rastro ambar na fita
+        rastroPendente = RASTRO_COMANDO;
 
         LOG_PRINT("--------------------------------------------------\n");
     } else {
@@ -404,7 +504,7 @@ int main(int argc, char** argv) {
         LOG_PRINT("[FITA] ws2811_init FALHOU: %s\n", ws2811_get_return_t_str(ret));
     } else {
         fitaApaga();
-        LOG_PRINT("[FITA] Inicializada em GPIO%d (PCM), %d pixels.\n", FITA_GPIO, FITA_COUNT);
+        LOG_PRINT("[FITA] Inicializada em GPIO%d (PWM), %d pixels.\n", FITA_GPIO, FITA_COUNT);
         LOG_PRINT("[FITA] Pulso de medicao continuo ativo.\n");
     }
 
@@ -447,9 +547,9 @@ int main(int argc, char** argv) {
     IedServer_handleWriteAccess(iedServer, IEDMODEL_VAO_XCBR3_Pos_ctlModel, writeAccessHandler, NULL);
 
     IedServer_setConnectionIndicationHandler(iedServer, (IedConnectionIndicationHandler) connectionHandler, NULL);
-    // ATENCAO: "lo" e a interface de loopback. Quando o GOOSE de trip vindo
-    // do EmpElas_PROT for implementado, isto precisa virar a interface de rede
-    // real (ex.: "eth0"), senao a mensagem nunca chega nesta placa.
+    // Interface de PUBLICACAO de GOOSE deste IED. Ele ainda nao publica nada,
+    // entao pode ficar em "lo". A RECEPCAO do trip e configurada abaixo,
+    // no GooseReceiver, e essa sim usa o cabo (GOOSE_INTERFACE).
     IedServer_setGooseInterfaceId(iedServer, "lo");
     IedServer_start(iedServer, tcpPort);
 
@@ -460,7 +560,23 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
+    // Assinatura do GOOSE de trip vindo do EmpElas_PROT
+    gooseReceiver = GooseReceiver_create();
+    GooseReceiver_setInterfaceId(gooseReceiver, GOOSE_INTERFACE);
+    GooseSubscriber subTrip = GooseSubscriber_create(GOOSE_TRIP_REF, NULL);
+    GooseSubscriber_setDstMac(subTrip, GOOSE_TRIP_DSTMAC);
+    GooseSubscriber_setAppId(subTrip, GOOSE_TRIP_APPID);
+    GooseSubscriber_setListener(subTrip, gooseTripListener, NULL);
+    GooseReceiver_addSubscriber(gooseReceiver, subTrip);
+    GooseReceiver_start(gooseReceiver);
+
     LOG_PRINT("\n--- EmpElas_CTRL : CONTROLE DE VAO (LEDs + servo + fita) ---\n");
+    if (GooseReceiver_isRunning(gooseReceiver))
+        LOG_PRINT("[GOOSE] Escutando o trip em %s (APPID 0x%04X). Abre: %s.\n",
+                  GOOSE_INTERFACE, GOOSE_TRIP_APPID, DJ_TRIP_NOME);
+    else
+        LOG_PRINT("[GOOSE] ERRO: receptor nao iniciou. Confira se %s existe e se rodou com sudo.\n",
+                  GOOSE_INTERFACE);
     LOG_PRINT("[STATUS] Servos: canais %d, %d e %d do PCA9685 | LEDs D1-D3 | Fita GPIO%d (%d px)\n", SERVO1_CH, SERVO2_CH, SERVO3_CH, FITA_GPIO, FITA_COUNT);
     LOG_PRINT("[STATUS] Rodando na porta %d. Aguardando comandos do SCADA...\n", tcpPort);
 
@@ -473,6 +589,10 @@ int main(int argc, char** argv) {
     }
 
     LOG_PRINT("\n[SISTEMA] Encerrando...\n");
+    if (gooseReceiver) {
+        GooseReceiver_stop(gooseReceiver);
+        GooseReceiver_destroy(gooseReceiver);   // destroi tambem o assinante
+    }
     if (pcaFd >= 0) {
         pcaSetPwm(pcaFd, SERVO1_CH, 0, PCA_FULL_OFF);
         pcaSetPwm(pcaFd, SERVO2_CH, 0, PCA_FULL_OFF);
