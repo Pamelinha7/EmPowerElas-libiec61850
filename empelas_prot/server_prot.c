@@ -1,230 +1,483 @@
 /*
  * EmPowerElas - Maquete de Subestacao Digital
- * IED de medicao e protecao (Raspberry Pi 1)
+ * IED de medicao e protecao (Raspberry Pi 1): EmpElas_PROT
  *
- * Dois LCD 1602 mostrando as grandezas dos transformadores de instrumento:
- *   LCD1 -> TC (corrente, A)
- *   LCD2 -> TP (tensao, kV)
+ * Recebe as amostras de corrente e tensao da merging unit (EmpElas_MU) por
+ * Sampled Values (4800 amostras por segundo) e, a cada ciclo de 60 Hz
+ * (80 amostras):
+ *   - calcula o valor eficaz (RMS) das correntes e tensoes das tres fases;
+ *   - roda a protecao de sobrecorrente de fase (PTOC1).
+ * Quando a protecao atua, o trip (PTRC1.Tr) e publicado por GOOSE para o IED
+ * de controle de vao (EmpElas_CTRL), que abre o disjuntor. O trip e
+ * tripolar: o disjuntor abre as tres fases juntas, qualquer que seja a fase
+ * com defeito.
  *
- * Os mesmos valores sao publicados no modelo IEC 61850 (MMXU1) para o
- * SCADA ler.
+ * Displays (LCD 1602):
+ *   LCD1 linha 1: estado (CORRENTE (A) / TRIP <fases> ->GOOSE / SEM SINAL DA MU)
+ *   LCD1 linha 2: correntes das fases A, B e C (A)
+ *   LCD2 linha 1: TENSAO FASE (kV)
+ *   LCD2 linha 2: tensoes das fases A, B e C (kV)
  *
- * PROTECAO E GOOSE
- * O supervisorio aplica uma falta escrevendo em GGIO1.SPCSO1. A corrente
- * simulada sobe acima do ajuste, a protecao de sobrecorrente (PTOC1) atua,
- * e o sinal de trip (PTRC1.Tr) e publicado por GOOSE para o IED de
- * controle de vao, que abre o disjuntor.
+ * Supervisorio (MMXU1, formato da norma): A (correntes), PhV (tensoes de
+ * fase) e PPV (tensoes entre fases). Atualizado a cada segundo e na hora em
+ * que a protecao muda de estado.
  *
- * A publicacao e automatica: o PTRC1.Tr.general faz parte do conjunto de
- * dados dsTrip, associado ao bloco gcbTrip no .icd. Toda vez que o valor
- * muda, a biblioteca envia o GOOSE e o repete em intervalos crescentes;
- * sem mudanca, reenvia a cada 1 s como sinal de vida.
+ * Nao existe mais botao de falta aqui: a falta acontece na "linha", que e a
+ * merging unit. Este IED so mede e decide, como um rele real.
  *
  * Compilar e rodar nesta Pi:
- *   java -jar genmodel.jar empelas_prot.icd   (sempre que o .icd mudar)
+ *   make modelo   (sempre que o .icd mudar)
  *   make
  *   sudo ./empelas_prot
  */
 
 #include "iec61850_server.h"
 #include "hal_thread.h"
+#include "sv_subscriber.h"
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/file.h>
+#include <math.h>
+#include <time.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <linux/if_packet.h>
 #include <wiringPi.h>
 #include <lcd.h>            // biblioteca de LCD do wiringPi (link: -lwiringPiDev)
-#include <time.h>
 
-// ================= DISPLAY 1 (TC - corrente) =================
-#define LCD1_RS  7   // wPi 7  = Físico 7
-#define LCD1_E   11  // wPi 11 = Físico 26
-#define LCD1_D4  12  // wPi 12 = Físico 19
-#define LCD1_D5  13  // wPi 13 = Físico 21
-#define LCD1_D6  14  // wPi 14 = Físico 23
-#define LCD1_D7  26  // wPi 26 = Físico 32
+// ================= DISPLAY 1 (correntes) =================
+#define LCD1_RS  7   // wPi 7  = Fisico 7
+#define LCD1_E   11  // wPi 11 = Fisico 26
+#define LCD1_D4  12  // wPi 12 = Fisico 19
+#define LCD1_D5  13  // wPi 13 = Fisico 21
+#define LCD1_D6  14  // wPi 14 = Fisico 23
+#define LCD1_D7  26  // wPi 26 = Fisico 32
 
-// ================= DISPLAY 2 (TP - tensao) ==================
-#define LCD2_RS  0   // wPi 0  = Físico 11
-#define LCD2_E   6   // wPi 6  = Físico 22
-#define LCD2_D4  2   // wPi 2  = Físico 13
-#define LCD2_D5  3   // wPi 3  = Físico 15
-#define LCD2_D6  22  // wPi 22 = Físico 31
-#define LCD2_D7  27  // wPi 27 = Físico 36
+// ================= DISPLAY 2 (tensoes) ===================
+#define LCD2_RS  0   // wPi 0  = Fisico 11
+#define LCD2_E   6   // wPi 6  = Fisico 22
+#define LCD2_D4  2   // wPi 2  = Fisico 13
+#define LCD2_D5  3   // wPi 3  = Fisico 15
+#define LCD2_D6  22  // wPi 22 = Fisico 31
+#define LCD2_D7  27  // wPi 27 = Fisico 36
 
-// ================= GRANDEZAS E PROTECAO =====================
-#define TC_BASE        100.0f   // corrente normal (A)
-#define TP_BASE        500.0f   // tensao normal (kV)
-#define TC_FALTA       800.0f   // corrente durante a falta simulada (A)
-#define PTOC_PARTIDA   300.0f   // ajuste da sobrecorrente instantanea (A)
-
-// A protecao e avaliada a cada 50 ms; os displays e as medicoes,
-// a cada 1 s. Assim o trip nao espera o ciclo lento dos displays.
-#define CICLO_MS        50
-#define CICLOS_POR_SEG  (1000 / CICLO_MS)
-
-// Interface de rede onde o GOOSE e publicado. Precisa ser o CABO:
-// o GOOSE nao atravessa o wi-fi de forma confiavel.
-#ifndef INTERFACE_GOOSE
-#define INTERFACE_GOOSE "eth0"
+// ================= REDE ====================================
+// O SV chega e o GOOSE sai pelo CABO (roteador da maquete).
+#ifndef INTERFACE_SV
+#define INTERFACE_SV     "eth0"
 #endif
+#ifndef INTERFACE_GOOSE
+#define INTERFACE_GOOSE  "eth0"
+#endif
+
+// SV da merging unit: precisa bater com o empelas_mu.icd e o server_mu.c
+#define SV_APPID            0x4000
+#define SV_ID               "EmpElas_MU01"
+static uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
+#define AMOSTRAS_POR_CICLO  80
+#define AMOSTRAS_POR_SEG    4800
+#define ESCALA_I            0.001   // 1 unidade = 1 mA
+#define ESCALA_V            0.01    // 1 unidade = 10 mV
+
+// Sem amostras por mais que isto: medicao invalida e protecao bloqueada
+#define SV_TIMEOUT_MS       100
+
+// ================= PROTECAO ================================
+#define PTOC_PARTIDA        300.0   // ajuste da sobrecorrente de fase (A)
 
 // ============================================================
 
 #include "static_model.h"
 
-static int running = 0;
-static IedServer iedServer = NULL;
-static int lcd1 = -1;   // handle do display 1 (TC)
-static int lcd2 = -1;   // handle do display 2 (TP)
+#define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
 
-static volatile int faltaAtiva = 0;   // escrita pelo supervisorio via GGIO1.SPCSO1
-static bool tripAtivo = false;        // estado atual do trip publicado
+static volatile int running = 0;
+static IedServer iedServer = NULL;
+static int lcd1 = -1;   // handle do display 1 (correntes)
+static int lcd2 = -1;   // handle do display 2 (tensoes)
 
 void sigint_handler(int signalId) { running = 0; }
 
-#define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+// ----------------------------------------------------------------
+// Garante que so existe uma copia deste programa rodando na Pi. Duas
+// copias ao mesmo tempo publicariam mensagens repetidas na rede (e a
+// segunda nem consegue usar a porta 102). A trava some sozinha quando o
+// programa fecha, mesmo se ele cair.
+// ----------------------------------------------------------------
+static int travarInstancia(const char* nome) {
+    char caminho[96];
+    snprintf(caminho, sizeof(caminho), "/tmp/%s.lock", nome);
+    int fd = open(caminho, O_CREAT | O_RDWR, 0666);
+    if (fd < 0) return 1;                         // sem trava, segue assim mesmo
+    if (flock(fd, LOCK_EX | LOCK_NB) != 0) return 0;
+    return 1;                                     // o arquivo fica aberto ate o fim
+}
 
 // ----------------------------------------------------------------
-// Protecao de sobrecorrente instantanea (funcao ANSI 50).
+// Pede para a placa de rede aceitar o endereco de grupo do SV.
 //
-// So escreve no modelo quando o estado MUDA. Isso importa: cada escrita
-// no PTRC1.Tr dispara um GOOSE novo, e publicar o mesmo valor a cada
-// 50 ms inundaria a rede sem necessidade.
-//
-// O selo de tempo e o do instante da deteccao, recebido como parametro,
-// e nao o do momento da publicacao.
+// Sem isso, a placa descarta as mensagens de SV antes de chegarem no
+// programa (a versao 1.6 da libiec61850 nao faz esse pedido sozinha para
+// o SV; para o GOOSE ela faz). O pedido vale enquanto este socket estiver
+// aberto, ou seja, enquanto o programa rodar. O socket nao recebe nada.
 // ----------------------------------------------------------------
-static void avaliarProtecao(float corrente, uint64_t ts) {
-    bool deveAtuar = (corrente > PTOC_PARTIDA);
-    if (deveAtuar == tripAtivo) return;
+static int sockGrupoSV = -1;
 
-    tripAtivo = deveAtuar;
+static void aceitarGrupoSV(const char* interface, const uint8_t* mac) {
+    sockGrupoSV = socket(AF_PACKET, SOCK_RAW, 0);
+    if (sockGrupoSV < 0) {
+        LOG_PRINT("[SV] Aviso: nao consegui pedir o grupo do SV (rode com sudo).\n");
+        return;
+    }
+    struct packet_mreq mr;
+    memset(&mr, 0, sizeof(mr));
+    mr.mr_ifindex = (int) if_nametoindex(interface);
+    mr.mr_type = PACKET_MR_MULTICAST;
+    mr.mr_alen = 6;
+    memcpy(mr.mr_address, mac, 6);
+    if (mr.mr_ifindex == 0 ||
+        setsockopt(sockGrupoSV, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)) != 0)
+        LOG_PRINT("[SV] Aviso: a placa %s nao aceitou o grupo do SV. Se nada chegar, rode:\n"
+                  "     sudo ip link set %s allmulticast on\n", interface, interface);
+}
+
+// Valores eficazes de um ciclo
+typedef struct {
+    double i[4];     // IA, IB, IC, IN (A)
+    double v[4];     // VA, VB, VC, VN (V)
+    double vll[3];   // VAB, VBC, VCA (V)
+} Medidas;
+
+// Ultimo ciclo completo (escrito pela thread do SV, lido pela dos displays)
+static pthread_mutex_t mtxMed = PTHREAD_MUTEX_INITIALIZER;
+static Medidas ultimaMedida;
+static int64_t ultimoCicloMs = 0;          // relogio monotonico
+static volatile uint32_t svCiclos = 0, svPerdidas = 0, svRepetidas = 0, svOutros = 0;
+
+// Estado da protecao: fases em sobrecorrente (bit 0 = A, 1 = B, 2 = C)
+static pthread_mutex_t mtxProt = PTHREAD_MUTEX_INITIALIZER;
+static volatile int fasesAtuadas = 0;
+
+static int64_t agoraMs(void) {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (int64_t) t.tv_sec * 1000 + t.tv_nsec / 1000000;
+}
+
+static void textoFases(int fases, char* s) {
+    int k = 0;
+    if (fases & 1) s[k++] = 'A';
+    if (fases & 2) s[k++] = 'B';
+    if (fases & 4) s[k++] = 'C';
+    s[k] = '\0';
+}
+
+// ----------------------------------------------------------------
+// Protecao de sobrecorrente de fase, sem atraso (funcao ANSI 50).
+//
+// Roda a cada ciclo, com o RMS das tres fases. So escreve no modelo quando
+// o estado muda: o PTRC1.Tr.general esta no conjunto de dados do GOOSE, e
+// cada mudanca dele dispara uma mensagem nova. O selo de tempo e o do
+// instante da deteccao.
+//
+// medicaoValida = false (sem SV): a protecao fica bloqueada e solta tudo.
+// ----------------------------------------------------------------
+static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t ts) {
+    int fases = 0;
+    if (medicaoValida) {
+        if (iFase[0] > PTOC_PARTIDA) fases |= 1;
+        if (iFase[1] > PTOC_PARTIDA) fases |= 2;
+        if (iFase[2] > PTOC_PARTIDA) fases |= 4;
+    }
+
+    pthread_mutex_lock(&mtxProt);
+    int antes = fasesAtuadas;
+    if (fases == antes) {
+        pthread_mutex_unlock(&mtxProt);
+        return;
+    }
+    fasesAtuadas = fases;
+    bool geral = (fases != 0);
+    bool geralAntes = (antes != 0);
 
     IedServer_lockDataModel(iedServer);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, deveAtuar);
+    // Partida (Str) e operacao (Op): sem atraso, mudam juntas
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, geral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsA, (fases & 1) != 0);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsB, (fases & 2) != 0);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsC, (fases & 4) != 0);
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_t, ts);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, deveAtuar);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, geral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsA, (fases & 1) != 0);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsB, (fases & 2) != 0);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsC, (fases & 4) != 0);
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_t, ts);
-    // Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, deveAtuar);
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_t, ts);
+    // Trip tripolar. Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
+    if (geral != geralAntes) {
+        IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, geral);
+        IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_t, ts);
+    }
     IedServer_unlockDataModel(iedServer);
+    pthread_mutex_unlock(&mtxProt);
 
-    if (deveAtuar)
-        LOG_PRINT("[PROTECAO] Sobrecorrente: %.1f A > %.1f A. TRIP publicado por GOOSE.\n",
-                  corrente, PTOC_PARTIDA);
-    else
+    char f[4];
+    textoFases(fases, f);
+    if (geral && !geralAntes) {
+        LOG_PRINT("--------------------------------------------------\n");
+        LOG_PRINT("[PROTECAO] Sobrecorrente na fase %s (IA %.1f  IB %.1f  IC %.1f A; ajuste %.0f A).\n",
+                  f, iFase[0], iFase[1], iFase[2], PTOC_PARTIDA);
+        LOG_PRINT("           TRIP publicado por GOOSE.\n");
+        LOG_PRINT("--------------------------------------------------\n");
+    } else if (geral) {
+        LOG_PRINT("[PROTECAO] Fases em sobrecorrente agora: %s.\n", f);
+    } else if (medicaoValida) {
         LOG_PRINT("[PROTECAO] Corrente normalizada. Trip retirado, GOOSE publicado.\n");
+    } else {
+        LOG_PRINT("[PROTECAO] Sem medicao: protecao bloqueada, trip retirado.\n");
+    }
 }
 
-static void publicarMedicoes(float tc, float tp, uint64_t ts) {
-    uint16_t goodQuality = 0x0000;
+// ----------------------------------------------------------------
+// Chamada a cada mensagem de SV (4800 por segundo), na thread do receptor.
+//
+// Soma o quadrado de cada amostra; a cada 80 amostras (um ciclo) tira a
+// raiz da media: e o valor eficaz (RMS) do ciclo. Repeticoes (mesmo
+// smpCnt) sao ignoradas e saltos no smpCnt contam como amostras perdidas.
+//
+// Se faltar alguma amostra, ou se o SV tinha parado e voltou, o ciclo que
+// estava pela metade e descartado. Sem isso, o primeiro "ciclo" misturaria
+// amostras velhas com novas e poderia dar um valor errado (e um trip falso).
+// ----------------------------------------------------------------
+static double soma[11];
+static int nSoma = 0;
+static int ultimoSmpCnt = -1;
+static int64_t ultimaAmostraMs = 0;
+
+static void aoReceberSV(SVSubscriber sub, void* parameter, SVSubscriber_ASDU asdu) {
+    const char* id = SVSubscriber_ASDU_getSvId(asdu);
+    if (id == NULL || strcmp(id, SV_ID) != 0 || SVSubscriber_ASDU_getDataSize(asdu) < 64) {
+        svOutros++;
+        return;
+    }
+
+    int smpCnt = SVSubscriber_ASDU_getSmpCnt(asdu);
+    if (smpCnt == ultimoSmpCnt) {
+        svRepetidas++;
+        return;
+    }
+
+    int64_t agora = agoraMs();
+    bool svTinhaParado = (agora - ultimaAmostraMs > SV_TIMEOUT_MS);
+    bool lacuna = svTinhaParado;
+    if (!svTinhaParado && ultimoSmpCnt >= 0) {
+        int esperado = (ultimoSmpCnt + 1) % AMOSTRAS_POR_SEG;
+        if (smpCnt != esperado) {
+            svPerdidas += (smpCnt - esperado + AMOSTRAS_POR_SEG) % AMOSTRAS_POR_SEG;
+            lacuna = true;
+        }
+    }
+    ultimoSmpCnt = smpCnt;
+    ultimaAmostraMs = agora;
+
+    if (lacuna) {                    // descarta o ciclo incompleto
+        memset(soma, 0, sizeof(soma));
+        nSoma = 0;
+    }
+
+    // 8 canais: valor (4 bytes) + qualidade (4 bytes) cada
+    double x[8];
+    for (int ch = 0; ch < 8; ch++)
+        x[ch] = SVSubscriber_ASDU_getINT32(asdu, ch * 8) * ((ch < 4) ? ESCALA_I : ESCALA_V);
+
+    for (int ch = 0; ch < 8; ch++)
+        soma[ch] += x[ch] * x[ch];
+    double vab = x[4] - x[5], vbc = x[5] - x[6], vca = x[6] - x[4];
+    soma[8] += vab * vab;
+    soma[9] += vbc * vbc;
+    soma[10] += vca * vca;
+    nSoma++;
+
+    if (nSoma < AMOSTRAS_POR_CICLO)
+        return;
+
+    // Fechou um ciclo
+    Medidas m;
+    for (int k = 0; k < 4; k++) m.i[k] = sqrt(soma[k] / nSoma);
+    for (int k = 0; k < 4; k++) m.v[k] = sqrt(soma[4 + k] / nSoma);
+    for (int k = 0; k < 3; k++) m.vll[k] = sqrt(soma[8 + k] / nSoma);
+    memset(soma, 0, sizeof(soma));
+    nSoma = 0;
+
+    pthread_mutex_lock(&mtxMed);
+    ultimaMedida = m;
+    ultimoCicloMs = agoraMs();
+    svCiclos++;
+    pthread_mutex_unlock(&mtxMed);
+
+    avaliarProtecao(m.i, true, Hal_getTimeInMs());
+}
+
+// ----------------------------------------------------------------
+// Supervisorio: MMXU1 (A em amperes, PhV e PPV em kV)
+// ----------------------------------------------------------------
+static void publicarMedicoes(const Medidas* m, bool valida, uint64_t ts) {
+    DataAttribute* magA[4] = { IEDMODEL_MEDPROT_MMXU1_A_phsA_cVal_mag_f, IEDMODEL_MEDPROT_MMXU1_A_phsB_cVal_mag_f,
+                               IEDMODEL_MEDPROT_MMXU1_A_phsC_cVal_mag_f, IEDMODEL_MEDPROT_MMXU1_A_neut_cVal_mag_f };
+    DataAttribute* qA[4]   = { IEDMODEL_MEDPROT_MMXU1_A_phsA_q, IEDMODEL_MEDPROT_MMXU1_A_phsB_q,
+                               IEDMODEL_MEDPROT_MMXU1_A_phsC_q, IEDMODEL_MEDPROT_MMXU1_A_neut_q };
+    DataAttribute* tA[4]   = { IEDMODEL_MEDPROT_MMXU1_A_phsA_t, IEDMODEL_MEDPROT_MMXU1_A_phsB_t,
+                               IEDMODEL_MEDPROT_MMXU1_A_phsC_t, IEDMODEL_MEDPROT_MMXU1_A_neut_t };
+    DataAttribute* magV[4] = { IEDMODEL_MEDPROT_MMXU1_PhV_phsA_cVal_mag_f, IEDMODEL_MEDPROT_MMXU1_PhV_phsB_cVal_mag_f,
+                               IEDMODEL_MEDPROT_MMXU1_PhV_phsC_cVal_mag_f, IEDMODEL_MEDPROT_MMXU1_PhV_neut_cVal_mag_f };
+    DataAttribute* qV[4]   = { IEDMODEL_MEDPROT_MMXU1_PhV_phsA_q, IEDMODEL_MEDPROT_MMXU1_PhV_phsB_q,
+                               IEDMODEL_MEDPROT_MMXU1_PhV_phsC_q, IEDMODEL_MEDPROT_MMXU1_PhV_neut_q };
+    DataAttribute* tV[4]   = { IEDMODEL_MEDPROT_MMXU1_PhV_phsA_t, IEDMODEL_MEDPROT_MMXU1_PhV_phsB_t,
+                               IEDMODEL_MEDPROT_MMXU1_PhV_phsC_t, IEDMODEL_MEDPROT_MMXU1_PhV_neut_t };
+    DataAttribute* magL[3] = { IEDMODEL_MEDPROT_MMXU1_PPV_phsAB_cVal_mag_f, IEDMODEL_MEDPROT_MMXU1_PPV_phsBC_cVal_mag_f,
+                               IEDMODEL_MEDPROT_MMXU1_PPV_phsCA_cVal_mag_f };
+    DataAttribute* qL[3]   = { IEDMODEL_MEDPROT_MMXU1_PPV_phsAB_q, IEDMODEL_MEDPROT_MMXU1_PPV_phsBC_q,
+                               IEDMODEL_MEDPROT_MMXU1_PPV_phsCA_q };
+    DataAttribute* tL[3]   = { IEDMODEL_MEDPROT_MMXU1_PPV_phsAB_t, IEDMODEL_MEDPROT_MMXU1_PPV_phsBC_t,
+                               IEDMODEL_MEDPROT_MMXU1_PPV_phsCA_t };
+
+    // Sem SV: o ultimo valor fica, mas marcado como invalido
+    Quality q = valida ? QUALITY_VALIDITY_GOOD : (QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
+
     IedServer_lockDataModel(iedServer);
-    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_instMag_f, tc);
-    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_mag_f, tc);
-    IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_q, goodQuality);
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Amp_t, ts);
-    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_instMag_f, tp);
-    IedServer_updateFloatAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_mag_f, tp);
-    IedServer_updateQuality(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_q, goodQuality);
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_MMXU1_Vol_t, ts);
+    for (int k = 0; k < 4; k++) {
+        if (valida) IedServer_updateFloatAttributeValue(iedServer, magA[k], (float) m->i[k]);
+        IedServer_updateQuality(iedServer, qA[k], q);
+        IedServer_updateUTCTimeAttributeValue(iedServer, tA[k], ts);
+        if (valida) IedServer_updateFloatAttributeValue(iedServer, magV[k], (float) (m->v[k] / 1000.0));
+        IedServer_updateQuality(iedServer, qV[k], q);
+        IedServer_updateUTCTimeAttributeValue(iedServer, tV[k], ts);
+    }
+    for (int k = 0; k < 3; k++) {
+        if (valida) IedServer_updateFloatAttributeValue(iedServer, magL[k], (float) (m->vll[k] / 1000.0));
+        IedServer_updateQuality(iedServer, qL[k], q);
+        IedServer_updateUTCTimeAttributeValue(iedServer, tL[k], ts);
+    }
     IedServer_unlockDataModel(iedServer);
 }
 
-static void atualizarDisplays(float tc, float tp) {
+// ----------------------------------------------------------------
+// Displays
+// ----------------------------------------------------------------
+static void lcdLinha(int lcd, int linha, const char* texto) {
     char buf[17];
+    snprintf(buf, sizeof(buf), "%-16.16s", texto);   // completa ou corta em 16 letras
+    lcdPosition(lcd, 0, linha);
+    lcdPuts(lcd, buf);
+}
 
-    // LCD1: corrente. Durante o trip, a primeira linha avisa o envio do GOOSE.
+static int ate999(double x) {
+    long r = lround(x);
+    if (r < 0) r = 0;
+    if (r > 999) r = 999;
+    return (int) r;
+}
+
+static void atualizarDisplays(const Medidas* m, bool svOk, int fases) {
+    char l[40];
+
     if (lcd1 >= 0) {
-        lcdPosition(lcd1, 0, 0);
-        lcdPuts(lcd1, tripAtivo ? "TRIP-GOOSE ENV. " : "CORRENTE (TC)   ");
-        snprintf(buf, sizeof(buf), "   %6.1f A     ", tc);
-        buf[16] = '\0';
-        lcdPosition(lcd1, 0, 1);
-        lcdPuts(lcd1, buf);
+        if (!svOk) {
+            lcdLinha(lcd1, 0, "SEM SINAL DA MU");
+        } else if (fases) {
+            char f[4];
+            textoFases(fases, f);
+            snprintf(l, sizeof(l), "TRIP %-3s ->GOOSE", f);
+            lcdLinha(lcd1, 0, l);
+        } else {
+            lcdLinha(lcd1, 0, "CORRENTE (A)");
+        }
+        if (svOk) snprintf(l, sizeof(l), "A%3d B%3d C%3d", ate999(m->i[0]), ate999(m->i[1]), ate999(m->i[2]));
+        else      snprintf(l, sizeof(l), "A--- B--- C---");
+        lcdLinha(lcd1, 1, l);
     }
 
-    // LCD2: tensao
     if (lcd2 >= 0) {
-        lcdPosition(lcd2, 0, 0);
-        lcdPuts(lcd2, "TENSAO (TP)     ");
-        snprintf(buf, sizeof(buf), "  %6.1f kV     ", tp);
-        buf[16] = '\0';
-        lcdPosition(lcd2, 0, 1);
-        lcdPuts(lcd2, buf);
+        lcdLinha(lcd2, 0, "TENSAO FASE (kV)");
+        if (svOk) snprintf(l, sizeof(l), "A%3d B%3d C%3d", ate999(m->v[0] / 1000.0),
+                           ate999(m->v[1] / 1000.0), ate999(m->v[2] / 1000.0));
+        else      snprintf(l, sizeof(l), "A--- B--- C---");
+        lcdLinha(lcd2, 1, l);
     }
 }
 
-// Thread principal da medicao e da protecao.
+// ----------------------------------------------------------------
+// Thread dos displays e do supervisorio. Tambem vigia o SV: se a merging
+// unit parar de mandar amostras, a medicao fica invalida e a protecao e
+// bloqueada.
+// ----------------------------------------------------------------
 void* display_thread(void* arg) {
-    float tcNormal = TC_BASE;
-    float tp = TP_BASE;
-    int ciclo = 0;
-    int faltaAnterior = -1;
+    bool svOkAntes = false;
+    int fasesAntes = -1;
+    int64_t ultimoMmxu = 0, ultimoLcd = 0, ultimoLog = 0;
+    uint32_t perdidasAntes = 0;
 
     while (running) {
-        int faltaAgora = faltaAtiva;
-        bool novoSegundo = (ciclo % CICLOS_POR_SEG == 0);
+        Medidas m;
+        pthread_mutex_lock(&mtxMed);
+        m = ultimaMedida;
+        int64_t tCiclo = ultimoCicloMs;
+        uint32_t perdidas = svPerdidas;
+        pthread_mutex_unlock(&mtxMed);
 
-        // Valores normais com pequena variacao, renovados a cada segundo
-        if (novoSegundo) {
-            tcNormal = TC_BASE + ((rand() % 200) - 100) / 10.0f;   // ~90 a 110 A
-            tp       = TP_BASE + ((rand() % 100) - 50)  / 10.0f;   // ~495 a 505 kV
+        int64_t agora = agoraMs();
+        bool svOk = (tCiclo > 0) && (agora - tCiclo < SV_TIMEOUT_MS);
+
+        if (svOk != svOkAntes) {
+            if (svOk) {
+                LOG_PRINT("[SV] Recebendo a merging unit (%s).\n", SV_ID);
+            } else if (tCiclo > 0) {
+                LOG_PRINT("[SV] Sem sinal da merging unit! Medicao invalida e protecao bloqueada.\n");
+                double zero[3] = {0, 0, 0};
+                avaliarProtecao(zero, false, Hal_getTimeInMs());
+            }
         }
 
-        float tc = faltaAgora ? TC_FALTA : tcNormal;
-        uint64_t ts = Hal_getTimeInMs();
+        int fases = fasesAtuadas;
+        bool mudou = (svOk != svOkAntes) || (fases != fasesAntes);
 
-        // A protecao roda em todo ciclo de 50 ms
-        avaliarProtecao(tc, ts);
-
-        // Medicoes e displays: a cada segundo, ou na hora em que a falta muda
-        if (novoSegundo || faltaAgora != faltaAnterior) {
-            publicarMedicoes(tc, tp, ts);
-            atualizarDisplays(tc, tp);
-            LOG_PRINT("[SIM] TC: %.1f A | TP: %.1f kV%s\n", tc, tp, faltaAgora ? "  <- FALTA" : "");
-            faltaAnterior = faltaAgora;
+        if (mudou || agora - ultimoMmxu >= 1000) {
+            publicarMedicoes(&m, svOk, Hal_getTimeInMs());
+            ultimoMmxu = agora;
+        }
+        if (mudou || agora - ultimoLcd >= 500) {
+            atualizarDisplays(&m, svOk, fases);
+            ultimoLcd = agora;
+        }
+        if (agora - ultimoLog >= 5000) {
+            if (svOk)
+                LOG_PRINT("[MEDICAO] IA %.1f IB %.1f IC %.1f IN %.1f A | VA %.1f VB %.1f VC %.1f kV | SV perdidas: %u\n",
+                          m.i[0], m.i[1], m.i[2], m.i[3], m.v[0] / 1000, m.v[1] / 1000, m.v[2] / 1000,
+                          (unsigned) (perdidas - perdidasAntes));
+            perdidasAntes = perdidas;
+            ultimoLog = agora;
         }
 
-        ciclo++;
-        Thread_sleep(CICLO_MS);
+        svOkAntes = svOk;
+        fasesAntes = fases;
+        Thread_sleep(50);
     }
     return NULL;
-}
-
-// ----------------------------------------------------------------
-// Botao "aplicar falta" do supervisorio: GGIO1.SPCSO1
-//   true  -> aplica a falta (corrente sobe para TC_FALTA)
-//   false -> retira a falta
-// ----------------------------------------------------------------
-static CheckHandlerResult checkHandlerFalta(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
-    return CONTROL_ACCEPTED;
-}
-
-static ControlHandlerResult controlHandlerFalta(ControlAction action, void* parameter, MmsValue* value, bool test) {
-    if (MmsValue_getType(value) != MMS_BOOLEAN)
-        return CONTROL_RESULT_FAILED;
-
-    bool aplicar = MmsValue_getBoolean(value);
-    faltaAtiva = aplicar ? 1 : 0;
-
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1_t, Hal_getTimeInMs());
-    IedServer_updateAttributeValue(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1_stVal, value);
-
-    ClientConnection con = ControlAction_getClientConnection(action);
-    LOG_PRINT("--------------------------------------------------\n");
-    LOG_PRINT("[COMANDO] %s a falta (origem: %s)\n", aplicar ? "APLICAR" : "RETIRAR",
-              con ? ClientConnection_getPeerAddress(con) : "desconhecida");
-    LOG_PRINT("--------------------------------------------------\n");
-
-    return CONTROL_RESULT_OK;
 }
 
 int main(int argc, char** argv) {
     signal(SIGINT, sigint_handler);
     signal(SIGTERM, sigint_handler);
+
+    if (!travarInstancia("empelas_prot")) {
+        LOG_PRINT("ERRO: o empelas_prot ja esta rodando nesta Pi. Feche o outro (Ctrl+C no terminal dele)\n"
+                  "      ou procure com:  ps aux | grep empelas_prot\n");
+        exit(1);
+    }
 
     if (wiringPiSetup() == -1) {
         fprintf(stderr, "ERRO: Falha ao inicializar o wiringPi! Rode como root (sudo).\n");
@@ -232,11 +485,10 @@ int main(int argc, char** argv) {
     }
 
     // Inicializa os dois displays (modo 4 bits)
-    srand((unsigned) time(NULL));
     lcd1 = lcdInit(2, 16, 4, LCD1_RS, LCD1_E, LCD1_D4, LCD1_D5, LCD1_D6, LCD1_D7, 0, 0, 0, 0);
     lcd2 = lcdInit(2, 16, 4, LCD2_RS, LCD2_E, LCD2_D4, LCD2_D5, LCD2_D6, LCD2_D7, 0, 0, 0, 0);
-    if (lcd1 >= 0) { lcdClear(lcd1); lcdPosition(lcd1, 0, 0); lcdPuts(lcd1, "Display 1 - TC"); }
-    if (lcd2 >= 0) { lcdClear(lcd2); lcdPosition(lcd2, 0, 0); lcdPuts(lcd2, "Display 2 - TP"); }
+    if (lcd1 >= 0) { lcdClear(lcd1); lcdLinha(lcd1, 0, "EmpElas PROT"); lcdLinha(lcd1, 1, "Aguardando MU"); }
+    if (lcd2 >= 0) { lcdClear(lcd2); lcdLinha(lcd2, 0, "TENSAO FASE (kV)"); lcdLinha(lcd2, 1, "A--- B--- C---"); }
 
     // Silencia os printf's padrao da biblioteca (LOG_PRINT usa stderr e continua aparecendo)
     int dev_null = open("/dev/null", O_WRONLY);
@@ -245,11 +497,6 @@ int main(int argc, char** argv) {
     iedServer = IedServer_create(&iedModel);
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
-
-    // Botao de falta do supervisorio
-    IedServer_updateCtlModel(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, CONTROL_MODEL_DIRECT_NORMAL);
-    IedServer_setPerformCheckHandler(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, checkHandlerFalta, NULL);
-    IedServer_setControlHandler(iedServer, IEDMODEL_MEDPROT_GGIO1_SPCSO1, (ControlHandler) controlHandlerFalta, NULL);
 
     // GOOSE sai pelo cabo
     IedServer_setGooseInterfaceId(iedServer, INTERFACE_GOOSE);
@@ -263,14 +510,27 @@ int main(int argc, char** argv) {
     // Habilita a publicacao de todos os blocos GOOSE do modelo (gcbTrip)
     IedServer_enableGoosePublishing(iedServer);
 
-    LOG_PRINT("\n--- EmpElas_PROT : MEDICAO E PROTECAO ---\n");
-    LOG_PRINT("[STATUS] LCD1 (TC) %s | LCD2 (TP) %s\n", (lcd1 >= 0) ? "OK" : "FALHOU", (lcd2 >= 0) ? "OK" : "FALHOU");
+    // Assinatura do SV da merging unit
+    SVReceiver svReceiver = SVReceiver_create();
+    SVReceiver_setInterfaceId(svReceiver, INTERFACE_SV);
+    SVSubscriber svSub = SVSubscriber_create(SV_DSTMAC, SV_APPID);
+    SVSubscriber_setListener(svSub, aoReceberSV, NULL);
+    SVReceiver_addSubscriber(svReceiver, svSub);
+    SVReceiver_start(svReceiver);
+    aceitarGrupoSV(INTERFACE_SV, SV_DSTMAC);
+
+    LOG_PRINT("\n--- EmpElas_PROT : MEDICAO (SV da merging unit) E PROTECAO ---\n");
+    LOG_PRINT("[STATUS] LCD1 (correntes) %s | LCD2 (tensoes) %s\n", (lcd1 >= 0) ? "OK" : "FALHOU", (lcd2 >= 0) ? "OK" : "FALHOU");
     LOG_PRINT("[STATUS] Rodando na porta %d.\n", tcpPort);
+    if (SVReceiver_isRunning(svReceiver))
+        LOG_PRINT("[SV]     Assinando %s em %s (APPID 0x%04X). Aguardando a merging unit...\n", SV_ID, INTERFACE_SV, SV_APPID);
+    else
+        LOG_PRINT("[SV]     ERRO: receptor de SV nao iniciou. Confira se %s existe e se rodou com sudo.\n", INTERFACE_SV);
     LOG_PRINT("[GOOSE]  Publicando gcbTrip em %s (APPID 0x1001).\n", INTERFACE_GOOSE);
-    LOG_PRINT("[PROTECAO] Sobrecorrente instantanea, partida em %.0f A.\n", PTOC_PARTIDA);
+    LOG_PRINT("[PROTECAO] Sobrecorrente de fase, sem atraso, partida em %.0f A. Trip tripolar.\n", PTOC_PARTIDA);
 
     running = 1;
-    Thread displayThread = Thread_create((ThreadExecutionFunction)display_thread, NULL, true);
+    Thread displayThread = Thread_create((ThreadExecutionFunction) display_thread, NULL, false);
     Thread_start(displayThread);
 
     while (running) {
@@ -278,9 +538,13 @@ int main(int argc, char** argv) {
     }
 
     LOG_PRINT("\n[SISTEMA] Encerrando...\n");
+    SVReceiver_stop(svReceiver);
+    SVReceiver_destroy(svReceiver);
+    if (sockGrupoSV >= 0) close(sockGrupoSV);
+    Thread_destroy(displayThread);
     IedServer_disableGoosePublishing(iedServer);
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);
-    close(dev_null);
+    if (dev_null != -1) close(dev_null);
     return 0;
 }

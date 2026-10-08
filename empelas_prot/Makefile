@@ -1,42 +1,55 @@
-# Nome do executavel
+# Makefile - EmpElas_PROT (Pi 1: medicao, protecao e assinatura do SV)
+#
+# Compila contra a libiec61850 INSTALADA NO SISTEMA, nao contra a arvore
+# de codigo da biblioteca. Por isso este diretorio pode ficar em qualquer
+# lugar - inclusive num clone do repositorio.
+#
+#   make            compila
+#   make modelo     regenera static_model.c/.h a partir do .icd
+#   make clean      apaga o binario e os objetos
+#
+# Se a biblioteca tiver sido instalada em outro prefixo:
+#   make PREFIX=/opt/libiec61850
+
+PREFIX ?= /usr/local
+
 TARGET = empelas_prot
+SRCS   = server_prot.c static_model.c
+ICD    = empelas_prot.icd
 
-# Compilacao dos arquivos C
-SRCS = server_prot.c static_model.c
+CC      = gcc
+CFLAGS  = -g -Wall -O2
+CPPFLAGS = -I$(PREFIX)/include/libiec61850 -I$(PREFIX)/include
+LDFLAGS  = -L$(PREFIX)/lib
 
-# Flags do Compilador (todos os caminhos -I para os headers)
-CFLAGS = -g \
--I../../config \
--I../../hal/inc \
--I../../src/common/inc \
--I../../src/mms/inc \
--I../../src/mms/inc_private \
--I../../src/mms/asn1 \
--I../../src/iec61850/inc \
--I../../src/iec61850/inc_private \
--I../../src/goose \
--I../../src/sampled_values \
--I../../src/logging \
--I../../src/tls \
--I../../src/r_session
+# wiringPiDev traz a biblioteca de LCD (lcd.h), usada pelos dois displays.
+LIBS = -liec61850 -lwiringPi -lwiringPiDev -lpthread -lm -lrt
 
-# Flags do Linker (caminhos -L para as bibliotecas .a)
-# -L/usr/local/lib para garantir que ache o wiringPi
-LDFLAGS = -L../../build -L../../build/src -L../../build/hal -L/usr/local/lib
+# Algumas compilacoes da libiec61850 incluem suporte a log em sqlite.
+# Se o link reclamar de simbolos sqlite3_*, mantenha esta linha.
+# Se reclamar que nao encontra -lsqlite3, comente-a.
+LIBS += -lsqlite3
 
-# Bibliotecas a linkar (todas as flags -l)
-
-LDLIBS = -liec61850 -lpthread -lm -lsqlite3 -lwiringPiDev -lwiringPi
-
-# --- Regras do Make ---
+.PHONY: all modelo clean
 
 all: $(TARGET)
 
-# Como construir o TARGET
 $(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(SRCS) -o $@ $(LDFLAGS) $(LIBS)
+	@echo ""
+	@echo "Pronto. Rode com:  sudo ./$(TARGET)"
 
-	gcc $(CFLAGS) -o $(TARGET) $(SRCS) $(LDFLAGS) $(LDLIBS)
+# Regenera o modelo a partir do SCL. Necessario apenas quando o .icd muda.
+# Os arquivos gerados sao versionados, entao um clone limpo ja compila
+# sem precisar deste alvo.
+# Usa o genmodel que veio com a libiec61850 clonada nesta Pi (mesma versao
+# da biblioteca); se nao existir, usa o da raiz do repositorio.
+GENMODEL ?= $(firstword $(wildcard $(HOME)/libiec61850/tools/model_generator/genmodel.jar) ../genmodel.jar)
 
-# "make clean"
+modelo:
+	java -jar $(GENMODEL) $(ICD)
+	@echo ""
+	@echo "Modelo regenerado. Recompile com 'make' e reimporte o $(ICD) no SCADA."
+
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) *.o

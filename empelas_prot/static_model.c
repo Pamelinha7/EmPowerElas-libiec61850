@@ -1343,7 +1343,7 @@ DataObject iedModel_MEDPROT_MMXU1_Health = {
     DataObjectModelType,
     "Health",
     (ModelNode*) &iedModel_MEDPROT_MMXU1,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A,
     (ModelNode*) &iedModel_MEDPROT_MMXU1_Health_stVal,
     0,
     -1
@@ -1391,50 +1391,46 @@ DataAttribute iedModel_MEDPROT_MMXU1_Health_t = {
     NULL,
     0};
 
-DataObject iedModel_MEDPROT_MMXU1_TotW = {
+DataObject iedModel_MEDPROT_MMXU1_A = {
     DataObjectModelType,
-    "TotW",
+    "A",
     (ModelNode*) &iedModel_MEDPROT_MMXU1,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_instMag,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_instMag = {
+DataObject iedModel_MEDPROT_MMXU1_A_phsA = {
+    DataObjectModelType,
+    "phsA",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsA_cVal = {
     DataAttributeModelType,
-    "instMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_mag,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_instMag_f,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_cVal_mag,
     0,
     -1,
     IEC61850_FC_MX,
     IEC61850_CONSTRUCTED,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_instMag_f = {
-    DataAttributeModelType,
-    "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_instMag,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_MX,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_mag = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsA_cVal_mag = {
     DataAttributeModelType,
     "mag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_q,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_mag_f,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_cVal_mag_f,
     0,
     -1,
     IEC61850_FC_MX,
@@ -1443,10 +1439,10 @@ DataAttribute iedModel_MEDPROT_MMXU1_TotW_mag = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_mag_f = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsA_cVal_mag_f = {
     DataAttributeModelType,
     "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_mag,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_cVal_mag,
     NULL,
     NULL,
     0,
@@ -1457,11 +1453,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_TotW_mag_f = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_q = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsA_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_t,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA_t,
     NULL,
     0,
     -1,
@@ -1471,11 +1467,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_TotW_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_t = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsA_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_units,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsA,
+    NULL,
     NULL,
     0,
     -1,
@@ -1485,232 +1481,36 @@ DataAttribute iedModel_MEDPROT_MMXU1_TotW_t = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_units = {
-    DataAttributeModelType,
-    "units",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_units_SIUnit,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_units_SIUnit = {
-    DataAttributeModelType,
-    "SIUnit",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_units,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_units_multiplier,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_units_multiplier = {
-    DataAttributeModelType,
-    "multiplier",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_units,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_sVC = {
-    DataAttributeModelType,
-    "sVC",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_db,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_sVC_scaleFactor,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_sVC_scaleFactor = {
-    DataAttributeModelType,
-    "scaleFactor",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_sVC_offset,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_sVC_offset = {
-    DataAttributeModelType,
-    "offset",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_sVC,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_db = {
-    DataAttributeModelType,
-    "db",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_INT32U,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_subEna = {
-    DataAttributeModelType,
-    "subEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subMag,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_subMag = {
-    DataAttributeModelType,
-    "subMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subQ,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subMag_f,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_subMag_f = {
-    DataAttributeModelType,
-    "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subMag,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_subQ = {
-    DataAttributeModelType,
-    "subQ",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_subID,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_QUALITY,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_subID = {
-    DataAttributeModelType,
-    "subID",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW_blkEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_VISIBLE_STRING_64,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_TotW_blkEna = {
-    DataAttributeModelType,
-    "blkEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_TotW,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_BL,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataObject iedModel_MEDPROT_MMXU1_Vol = {
+DataObject iedModel_MEDPROT_MMXU1_A_phsB = {
     DataObjectModelType,
-    "Vol",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_instMag,
+    "phsB",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_cVal,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_instMag = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsB_cVal = {
     DataAttributeModelType,
-    "instMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_mag,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_instMag_f,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_cVal_mag,
     0,
     -1,
     IEC61850_FC_MX,
     IEC61850_CONSTRUCTED,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_instMag_f = {
-    DataAttributeModelType,
-    "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_instMag,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_MX,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_mag = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsB_cVal_mag = {
     DataAttributeModelType,
     "mag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_q,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_mag_f,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_cVal_mag_f,
     0,
     -1,
     IEC61850_FC_MX,
@@ -1719,10 +1519,10 @@ DataAttribute iedModel_MEDPROT_MMXU1_Vol_mag = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_mag_f = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsB_cVal_mag_f = {
     DataAttributeModelType,
     "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_mag,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_cVal_mag,
     NULL,
     NULL,
     0,
@@ -1733,11 +1533,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_Vol_mag_f = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_q = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsB_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_t,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB_t,
     NULL,
     0,
     -1,
@@ -1747,11 +1547,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_Vol_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_t = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsB_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_units,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsB,
+    NULL,
     NULL,
     0,
     -1,
@@ -1761,232 +1561,36 @@ DataAttribute iedModel_MEDPROT_MMXU1_Vol_t = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_units = {
-    DataAttributeModelType,
-    "units",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_units_SIUnit,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_units_SIUnit = {
-    DataAttributeModelType,
-    "SIUnit",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_units,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_units_multiplier,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_units_multiplier = {
-    DataAttributeModelType,
-    "multiplier",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_units,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_sVC = {
-    DataAttributeModelType,
-    "sVC",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_db,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_sVC_scaleFactor,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_sVC_scaleFactor = {
-    DataAttributeModelType,
-    "scaleFactor",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_sVC_offset,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_sVC_offset = {
-    DataAttributeModelType,
-    "offset",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_sVC,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_db = {
-    DataAttributeModelType,
-    "db",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_INT32U,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_subEna = {
-    DataAttributeModelType,
-    "subEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subMag,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_subMag = {
-    DataAttributeModelType,
-    "subMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subQ,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subMag_f,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_subMag_f = {
-    DataAttributeModelType,
-    "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subMag,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_subQ = {
-    DataAttributeModelType,
-    "subQ",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_subID,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_QUALITY,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_subID = {
-    DataAttributeModelType,
-    "subID",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol_blkEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_VISIBLE_STRING_64,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Vol_blkEna = {
-    DataAttributeModelType,
-    "blkEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Vol,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_BL,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataObject iedModel_MEDPROT_MMXU1_Amp = {
+DataObject iedModel_MEDPROT_MMXU1_A_phsC = {
     DataObjectModelType,
-    "Amp",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1,
-    NULL,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_instMag,
+    "phsC",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_cVal,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_instMag = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsC_cVal = {
     DataAttributeModelType,
-    "instMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_mag,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_instMag_f,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_cVal_mag,
     0,
     -1,
     IEC61850_FC_MX,
     IEC61850_CONSTRUCTED,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_instMag_f = {
-    DataAttributeModelType,
-    "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_instMag,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_MX,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_mag = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsC_cVal_mag = {
     DataAttributeModelType,
     "mag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_q,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_mag_f,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_cVal_mag_f,
     0,
     -1,
     IEC61850_FC_MX,
@@ -1995,10 +1599,10 @@ DataAttribute iedModel_MEDPROT_MMXU1_Amp_mag = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_mag_f = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsC_cVal_mag_f = {
     DataAttributeModelType,
     "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_mag,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_cVal_mag,
     NULL,
     NULL,
     0,
@@ -2009,11 +1613,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_Amp_mag_f = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_q = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsC_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_t,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC_t,
     NULL,
     0,
     -1,
@@ -2023,11 +1627,11 @@ DataAttribute iedModel_MEDPROT_MMXU1_Amp_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_t = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_phsC_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_units,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_phsC,
+    NULL,
     NULL,
     0,
     -1,
@@ -2037,184 +1641,662 @@ DataAttribute iedModel_MEDPROT_MMXU1_Amp_t = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_units = {
+DataObject iedModel_MEDPROT_MMXU1_A_neut = {
+    DataObjectModelType,
+    "neut",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_A_neut_cVal = {
     DataAttributeModelType,
-    "units",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_units_SIUnit,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_cVal_mag,
     0,
     -1,
-    IEC61850_FC_CF,
+    IEC61850_FC_MX,
     IEC61850_CONSTRUCTED,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_units_SIUnit = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_neut_cVal_mag = {
     DataAttributeModelType,
-    "SIUnit",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_units,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_units_multiplier,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_cVal,
     NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_cVal_mag_f,
     0,
     -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_units_multiplier = {
-    DataAttributeModelType,
-    "multiplier",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_units,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_sVC = {
-    DataAttributeModelType,
-    "sVC",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_db,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_sVC_scaleFactor,
-    0,
-    -1,
-    IEC61850_FC_CF,
+    IEC61850_FC_MX,
     IEC61850_CONSTRUCTED,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_sVC_scaleFactor = {
-    DataAttributeModelType,
-    "scaleFactor",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_sVC,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_sVC_offset,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_sVC_offset = {
-    DataAttributeModelType,
-    "offset",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_sVC,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_FLOAT32,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_db = {
-    DataAttributeModelType,
-    "db",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_INT32U,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_subEna = {
-    DataAttributeModelType,
-    "subEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subMag,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_subMag = {
-    DataAttributeModelType,
-    "subMag",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subQ,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subMag_f,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_subMag_f = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_neut_cVal_mag_f = {
     DataAttributeModelType,
     "f",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subMag,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_cVal_mag,
     NULL,
     NULL,
     0,
     -1,
-    IEC61850_FC_SV,
+    IEC61850_FC_MX,
     IEC61850_FLOAT32,
-    0,
+    0 + TRG_OPT_DATA_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_subQ = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_neut_q = {
     DataAttributeModelType,
-    "subQ",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_subID,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut_t,
     NULL,
     0,
     -1,
-    IEC61850_FC_SV,
+    IEC61850_FC_MX,
     IEC61850_QUALITY,
-    0,
+    0 + TRG_OPT_QUALITY_CHANGED,
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_subID = {
+DataAttribute iedModel_MEDPROT_MMXU1_A_neut_t = {
     DataAttributeModelType,
-    "subID",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp_blkEna,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_SV,
-    IEC61850_VISIBLE_STRING_64,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_MMXU1_Amp_blkEna = {
-    DataAttributeModelType,
-    "blkEna",
-    (ModelNode*) &iedModel_MEDPROT_MMXU1_Amp,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_A_neut,
     NULL,
     NULL,
     0,
     -1,
-    IEC61850_FC_BL,
-    IEC61850_BOOLEAN,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PhV = {
+    DataObjectModelType,
+    "PhV",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA,
+    0,
+    -1
+};
+
+DataObject iedModel_MEDPROT_MMXU1_PhV_phsA = {
+    DataObjectModelType,
+    "phsA",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsA_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsA_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsA_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsA_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsA_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsA,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PhV_phsB = {
+    DataObjectModelType,
+    "phsB",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsB_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsB_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsB_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsB_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsB_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsB,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PhV_phsC = {
+    DataObjectModelType,
+    "phsC",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsC_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsC_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsC_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsC_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_phsC_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_phsC,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PhV_neut = {
+    DataObjectModelType,
+    "neut",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_neut_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_neut_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_neut_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_neut_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PhV_neut_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PhV_neut,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PPV = {
+    DataObjectModelType,
+    "PPV",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB,
+    0,
+    -1
+};
+
+DataObject iedModel_MEDPROT_MMXU1_PPV_phsAB = {
+    DataObjectModelType,
+    "phsAB",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsAB_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsAB_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsAB,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PPV_phsBC = {
+    DataObjectModelType,
+    "phsBC",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsBC_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsBC_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsBC,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_MMXU1_PPV_phsCA = {
+    DataObjectModelType,
+    "phsCA",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal = {
+    DataAttributeModelType,
+    "cVal",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_q,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal_mag,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal_mag = {
+    DataAttributeModelType,
+    "mag",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal_mag_f,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_CONSTRUCTED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal_mag_f = {
+    DataAttributeModelType,
+    "f",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_cVal_mag,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_FLOAT32,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA,
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_MMXU1_PPV_phsCA,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_MX,
+    IEC61850_TIMESTAMP,
     0,
     NULL,
     0};
@@ -2359,6 +2441,90 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_dirGeneral = {
     DataAttributeModelType,
     "dirGeneral",
     (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsA,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_phsA = {
+    DataAttributeModelType,
+    "phsA",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsA,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsA = {
+    DataAttributeModelType,
+    "dirPhsA",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsB,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_phsB = {
+    DataAttributeModelType,
+    "phsB",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsB,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsB = {
+    DataAttributeModelType,
+    "dirPhsB",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsC,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_phsC = {
+    DataAttributeModelType,
+    "phsC",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsC,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsC = {
+    DataAttributeModelType,
+    "dirPhsC",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
     (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_q,
     NULL,
     0,
@@ -2411,6 +2577,48 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_general = {
     DataAttributeModelType,
     "general",
     (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsA,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Op_phsA = {
+    DataAttributeModelType,
+    "phsA",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsB,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Op_phsB = {
+    DataAttributeModelType,
+    "phsB",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsC,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_PTOC1_Op_phsC = {
+    DataAttributeModelType,
+    "phsC",
+    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
     (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_q,
     NULL,
     0,
@@ -2453,7 +2661,7 @@ LogicalNode iedModel_MEDPROT_PTRC1 = {
     LogicalNodeModelType,
     "PTRC1",
     (ModelNode*) &iedModel_MEDPROT,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1,
+    NULL,
     (ModelNode*) &iedModel_MEDPROT_PTRC1_Beh,
 };
 
@@ -2609,310 +2817,6 @@ DataAttribute iedModel_MEDPROT_PTRC1_Tr_t = {
     -1,
     IEC61850_FC_ST,
     IEC61850_TIMESTAMP,
-    0,
-    NULL,
-    0};
-
-LogicalNode iedModel_MEDPROT_GGIO1 = {
-    LogicalNodeModelType,
-    "GGIO1",
-    (ModelNode*) &iedModel_MEDPROT,
-    NULL,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh,
-};
-
-DataObject iedModel_MEDPROT_GGIO1_Beh = {
-    DataObjectModelType,
-    "Beh",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh_stVal,
-    0,
-    -1
-};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Beh_stVal = {
-    DataAttributeModelType,
-    "stVal",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh_q,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_ENUMERATED,
-    0 + TRG_OPT_DATA_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Beh_q = {
-    DataAttributeModelType,
-    "q",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh_t,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_QUALITY,
-    0 + TRG_OPT_QUALITY_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Beh_t = {
-    DataAttributeModelType,
-    "t",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Beh,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_TIMESTAMP,
-    0,
-    NULL,
-    0};
-
-DataObject iedModel_MEDPROT_GGIO1_Health = {
-    DataObjectModelType,
-    "Health",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health_stVal,
-    0,
-    -1
-};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Health_stVal = {
-    DataAttributeModelType,
-    "stVal",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health_q,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_ENUMERATED,
-    0 + TRG_OPT_DATA_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Health_q = {
-    DataAttributeModelType,
-    "q",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health_t,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_QUALITY,
-    0 + TRG_OPT_QUALITY_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_Health_t = {
-    DataAttributeModelType,
-    "t",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_Health,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_TIMESTAMP,
-    0,
-    NULL,
-    0};
-
-DataObject iedModel_MEDPROT_GGIO1_SPCSO1 = {
-    DataObjectModelType,
-    "SPCSO1",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1,
-    NULL,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_stVal,
-    0,
-    -1
-};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_stVal = {
-    DataAttributeModelType,
-    "stVal",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_q,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_BOOLEAN,
-    0 + TRG_OPT_DATA_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_q = {
-    DataAttributeModelType,
-    "q",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_t,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_QUALITY,
-    0 + TRG_OPT_QUALITY_CHANGED,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_t = {
-    DataAttributeModelType,
-    "t",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_ctlModel,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_ST,
-    IEC61850_TIMESTAMP,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_ctlModel = {
-    DataAttributeModelType,
-    "ctlModel",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CF,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper = {
-    DataAttributeModelType,
-    "Oper",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1,
-    NULL,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_ctlVal,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_ctlVal = {
-    DataAttributeModelType,
-    "ctlVal",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin = {
-    DataAttributeModelType,
-    "origin",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_ctlNum,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin_orCat,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_CONSTRUCTED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin_orCat = {
-    DataAttributeModelType,
-    "orCat",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin_orIdent,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_ENUMERATED,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin_orIdent = {
-    DataAttributeModelType,
-    "orIdent",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_origin,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_OCTET_STRING_64,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_ctlNum = {
-    DataAttributeModelType,
-    "ctlNum",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_T,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_INT8U,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_T = {
-    DataAttributeModelType,
-    "T",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_Test,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_TIMESTAMP,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_Test = {
-    DataAttributeModelType,
-    "Test",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper_Check,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_BOOLEAN,
-    0,
-    NULL,
-    0};
-
-DataAttribute iedModel_MEDPROT_GGIO1_SPCSO1_Oper_Check = {
-    DataAttributeModelType,
-    "Check",
-    (ModelNode*) &iedModel_MEDPROT_GGIO1_SPCSO1_Oper,
-    NULL,
-    NULL,
-    0,
-    -1,
-    IEC61850_FC_CO,
-    IEC61850_CHECK,
     0,
     NULL,
     0};

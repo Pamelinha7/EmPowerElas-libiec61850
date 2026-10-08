@@ -15,12 +15,45 @@
 #include <signal.h>
 #include <math.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <linux/if_packet.h>
 
+#define LOG_PRINT(...) printf(__VA_ARGS__)
 #define SV_APPID            0x4000
 #define SV_ID               "EmpElas_MU01"
 #define AMOSTRAS_POR_SEG    4800
 
 static volatile int running = 1;
+
+// ----------------------------------------------------------------
+// Pede para a placa de rede aceitar o endereco de grupo do SV.
+//
+// Sem isso, a placa descarta as mensagens de SV antes de chegarem no
+// programa (a versao 1.6 da libiec61850 nao faz esse pedido sozinha para
+// o SV; para o GOOSE ela faz). O pedido vale enquanto este socket estiver
+// aberto, ou seja, enquanto o programa rodar. O socket nao recebe nada.
+// ----------------------------------------------------------------
+static int sockGrupoSV = -1;
+
+static void aceitarGrupoSV(const char* interface, const uint8_t* mac) {
+    sockGrupoSV = socket(AF_PACKET, SOCK_RAW, 0);
+    if (sockGrupoSV < 0) {
+        LOG_PRINT("[SV] Aviso: nao consegui pedir o grupo do SV (rode com sudo).\n");
+        return;
+    }
+    struct packet_mreq mr;
+    memset(&mr, 0, sizeof(mr));
+    mr.mr_ifindex = (int) if_nametoindex(interface);
+    mr.mr_type = PACKET_MR_MULTICAST;
+    mr.mr_alen = 6;
+    memcpy(mr.mr_address, mac, 6);
+    if (mr.mr_ifindex == 0 ||
+        setsockopt(sockGrupoSV, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)) != 0)
+        LOG_PRINT("[SV] Aviso: a placa %s nao aceitou o grupo do SV. Se nada chegar, rode:\n"
+                  "     sudo ip link set %s allmulticast on\n", interface, interface);
+}
 static void parar(int s) { running = 0; }
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -70,6 +103,7 @@ int main(int argc, char** argv) {
     SVSubscriber_setListener(s, aoReceber, NULL);
     SVReceiver_addSubscriber(r, s);
     SVReceiver_start(r);
+    aceitarGrupoSV(interface, dstMac);
     if (!SVReceiver_isRunning(r)) {
         printf("Receptor nao iniciou. Confira a interface (%s) e rode com sudo.\n", interface);
         return 1;

@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   EmPowerElas - Maquete de Subestacao Digital
-  IED de medicao e protecao (Raspberry Pi 1)
+  IED de medicao e protecao (Raspberry Pi 1): EmpElas_PROT
 
-  Concentra as grandezas medidas dos transformadores de instrumento
-  (TC e TP) e a protecao de sobrecorrente. Ao detectar a falta, publica
-  o trip por GOOSE para o IED de controle de vao (EmpElas_CTRL).
+  Recebe as amostras de corrente e tensao da merging unit (EmpElas_MU)
+  por Sampled Values, calcula os valores eficazes das tres fases, roda a
+  protecao de sobrecorrente e, quando ela atua, publica o trip por GOOSE
+  para o IED de controle de vao (EmpElas_CTRL).
+
+  Nao ha mais botao de falta aqui: a falta acontece na "linha", que e a
+  merging unit. Este IED so mede e decide, como um rele real.
 -->
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
   <Header id="EmpElas" nameStructure="IEDName" />
@@ -42,24 +46,33 @@
             <DOI name="TmSrc" /> <DOI name="TmSrcTyp" /> <DOI name="Beh" />
           </LN>
 
-          <!-- Medicao: corrente (TC) e tensao (TP) -->
+          <!-- Medicao das tres fases, calculada a partir do SV da merging unit.
+               A: correntes (A). PhV: tensoes de fase (kV). PPV: tensoes entre fases (kV). -->
           <LN lnClass="MMXU" lnType="MMXU1_Typ" inst="1" prefix="">
-            <DOI name="NamPlt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="TotW" /> <DOI name="Vol" /> <DOI name="Amp" />
+            <DOI name="NamPlt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="A" /> <DOI name="PhV" /> <DOI name="PPV" />
+            <!-- De onde vem a medicao: o SV da merging unit (documentacao para as
+                 ferramentas de engenharia; o programa assina o SV diretamente) -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TCTR" lnInst="1" doName="Amp" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TCTR" lnInst="2" doName="Amp" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TCTR" lnInst="3" doName="Amp" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TCTR" lnInst="4" doName="Amp" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TVTR" lnInst="1" doName="Vol" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TVTR" lnInst="2" doName="Vol" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TVTR" lnInst="3" doName="Vol" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+              <ExtRef iedName="EmpElas_MU" ldInst="MU01" prefix="" lnClass="TVTR" lnInst="4" doName="Vol" daName="instMag.i" serviceType="SMV" srcLDInst="MU01" srcLNClass="LLN0" srcCBName="MSVCB01" />
+            </Inputs>
           </LN>
 
-          <!-- Protecao de sobrecorrente instantanea -->
+          <!-- Protecao de sobrecorrente de fase. Str e Op indicam tambem a fase. -->
           <LN lnClass="PTOC" lnType="PTOC1_Typ" inst="1" prefix="">
             <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Str" /> <DOI name="Op" />
           </LN>
 
-          <!-- Condicionamento do trip: e este sinal que vai no GOOSE -->
+          <!-- Condicionamento do trip: e este sinal que vai no GOOSE.
+               Tr.general = trip tripolar (o disjuntor abre as tres fases juntas). -->
           <LN lnClass="PTRC" lnType="PTRC1_Typ" inst="1" prefix="">
             <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Tr" />
-          </LN>
-
-          <!-- Entrada de teste: o botao "aplicar falta" do supervisorio -->
-          <LN lnClass="GGIO" lnType="GGIO1_Typ" inst="1" prefix="">
-            <DOI name="Beh" /> <DOI name="Health" /> <DOI name="SPCSO1" />
           </LN>
         </LDevice>
       </Server>
@@ -71,10 +84,9 @@
     <LNodeType id="LPHD1_Typ" lnClass="LPHD"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="PhyNam" type="DPL_Generic"/><DO name="PhyHealth" type="ENS_Health"/><DO name="OutOv" type="SPS_Generic"/><DO name="Proxy" type="SPS_Generic"/><DO name="OpTmh" type="INS_Generic"/><DO name="Sim" type="SPS_Generic"/></LNodeType>
     <LNodeType id="LTIM1_Typ" lnClass="LTIM"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="TmDT" type="SPS_Generic"/></LNodeType>
     <LNodeType id="LTMS1_Typ" lnClass="LTMS"><DO name="TmSrc" type="ENS_Generic"/><DO name="TmSrcTyp" type="ENS_Generic"/><DO name="Beh" type="ENS_Beh"/></LNodeType>
-    <LNodeType id="PTOC1_Typ" lnClass="PTOC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Str" type="ACD_Generic"/><DO name="Op" type="ACT_Generic"/></LNodeType>
+    <LNodeType id="MMXU1_Typ" lnClass="MMXU"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="A" type="WYE_1"/><DO name="PhV" type="WYE_1"/><DO name="PPV" type="DEL_1"/></LNodeType>
+    <LNodeType id="PTOC1_Typ" lnClass="PTOC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Str" type="ACD_Fases"/><DO name="Op" type="ACT_Fases"/></LNodeType>
     <LNodeType id="PTRC1_Typ" lnClass="PTRC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Tr" type="ACT_Generic"/></LNodeType>
-    <LNodeType id="GGIO1_Typ" lnClass="GGIO"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="SPCSO1" type="SPC_Ctrl"/></LNodeType>
-    <LNodeType id="MMXU1_Typ" lnClass="MMXU"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="TotW" type="MV_Generic"/><DO name="Vol" type="MV_Generic"/><DO name="Amp" type="MV_Generic"/></LNodeType>
 
     <DOType id="ENC_Mod" cdc="ENC"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
     <DOType id="ENS_Beh" cdc="ENS"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
@@ -82,26 +94,27 @@
     <DOType id="ENS_Generic" cdc="ENS"><DA name="stVal" bType="INT8U" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
     <DOType id="SPS_Generic" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
     <DOType id="INS_Generic" cdc="INS"><DA name="stVal" bType="INT32" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
-    <DOType id="MV_Generic" cdc="MV"><DA name="instMag" type="AnalogueValue_1" bType="Struct" fc="MX" /><DA name="mag" type="AnalogueValue_1" bType="Struct" fc="MX" dchg="true" /><DA name="q" bType="Quality" fc="MX" qchg="true" /><DA name="t" bType="Timestamp" fc="MX" /><DA name="units" type="Unit_1" bType="Struct" fc="CF" /><DA name="sVC" type="ScaledValueConfig_1" bType="Struct" fc="CF" /><DA name="db" bType="INT32U" fc="CF" /><DA name="subEna" bType="BOOLEAN" fc="SV" /><DA name="subMag" type="AnalogueValue_1" bType="Struct" fc="SV" /><DA name="subQ" bType="Quality" fc="SV" /><DA name="subID" bType="VisString64" fc="SV" /><DA name="blkEna" bType="BOOLEAN" fc="BL" /></DOType>
+
+    <!-- Medicao trifasica (formato da norma) -->
+    <DOType id="CMV_1" cdc="CMV"><DA name="cVal" type="Vector_1" bType="Struct" fc="MX" dchg="true" /><DA name="q" bType="Quality" fc="MX" qchg="true" /><DA name="t" bType="Timestamp" fc="MX" /></DOType>
+    <DOType id="WYE_1" cdc="WYE"><SDO name="phsA" type="CMV_1" /><SDO name="phsB" type="CMV_1" /><SDO name="phsC" type="CMV_1" /><SDO name="neut" type="CMV_1" /></DOType>
+    <DOType id="DEL_1" cdc="DEL"><SDO name="phsAB" type="CMV_1" /><SDO name="phsBC" type="CMV_1" /><SDO name="phsCA" type="CMV_1" /></DOType>
+
+    <!-- Protecao: partida (ACD) e operacao (ACT) com indicacao de fase -->
+    <DOType id="ACD_Fases" cdc="ACD"><DA name="general" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="dirGeneral" bType="Enum" type="FaultDirection" fc="ST" dchg="true" /><DA name="phsA" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="dirPhsA" bType="Enum" type="FaultDirection" fc="ST" dchg="true" /><DA name="phsB" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="dirPhsB" bType="Enum" type="FaultDirection" fc="ST" dchg="true" /><DA name="phsC" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="dirPhsC" bType="Enum" type="FaultDirection" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ACT_Fases" cdc="ACT"><DA name="general" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="phsA" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="phsB" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="phsC" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
     <DOType id="ACT_Generic" cdc="ACT"><DA name="general" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
-    <DOType id="ACD_Generic" cdc="ACD"><DA name="general" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="dirGeneral" bType="Enum" type="FaultDirection" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
-    <DOType id="SPC_Ctrl" cdc="SPC"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /><DA name="Oper" type="SPCOperate_1" bType="Struct" fc="CO" /></DOType>
+
     <DOType id="LPL_NamPlt" cdc="LPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="swRev" bType="VisString255" fc="DC" /><DA name="d" bType="VisString255" fc="DC" /><DA name="configRev" bType="VisString255" fc="DC" /><DA name="lnNs" bType="VisString255" fc="EX" /></DOType>
     <DOType id="DPL_Generic" cdc="DPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="model" bType="VisString255" fc="DC" /></DOType>
 
-    <DAType id="Originator_1"><BDA name="orCat" type="OrCat" bType="Enum" /><BDA name="orIdent" bType="Octet64" /></DAType>
-    <DAType id="SPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+    <DAType id="Vector_1"><BDA name="mag" type="AnalogueValue_1" bType="Struct" /></DAType>
     <DAType id="AnalogueValue_1"><BDA name="f" bType="FLOAT32" /></DAType>
-    <DAType id="Unit_1"><BDA name="SIUnit" bType="Enum" type="SIUnitKind" /><BDA name="multiplier" bType="Enum" type="MultiplierKind" /></DAType>
-    <DAType id="ScaledValueConfig_1"><BDA name="scaleFactor" bType="FLOAT32" /><BDA name="offset" bType="FLOAT32" /></DAType>
 
     <EnumType id="Beh"><EnumVal ord="1">on</EnumVal><EnumVal ord="2">blocked</EnumVal><EnumVal ord="3">test</EnumVal><EnumVal ord="4">test/blocked</EnumVal><EnumVal ord="5">off</EnumVal></EnumType>
     <EnumType id="HealthKind"><EnumVal ord="1">ok</EnumVal><EnumVal ord="2">warning</EnumVal><EnumVal ord="3">alarm</EnumVal></EnumType>
     <EnumType id="CtlModels"><EnumVal ord="0">status-only</EnumVal><EnumVal ord="1">direct-with-normal-security</EnumVal><EnumVal ord="2">sbo-with-normal-security</EnumVal><EnumVal ord="3">direct-with-enhanced-security</EnumVal><EnumVal ord="4">sbo-with-enhanced-security</EnumVal></EnumType>
-    <EnumType id="OrCat"><EnumVal ord="0">not-supported</EnumVal><EnumVal ord="1">bay-control</EnumVal><EnumVal ord="2">station-control</EnumVal><EnumVal ord="3">remote-control</EnumVal><EnumVal ord="4">automatic-bay</EnumVal><EnumVal ord="5">automatic-station</EnumVal><EnumVal ord="6">automatic-remote</EnumVal><EnumVal ord="7">maintenance</EnumVal><EnumVal ord="8">process</EnumVal></EnumType>
     <EnumType id="FaultDirection"><EnumVal ord="0">unknown</EnumVal><EnumVal ord="1">forward</EnumVal><EnumVal ord="2">backward</EnumVal><EnumVal ord="3">both</EnumVal></EnumType>
-    <EnumType id="SIUnitKind"><EnumVal ord="1">V</EnumVal><EnumVal ord="2">A</EnumVal><EnumVal ord="3">W</EnumVal><EnumVal ord="4">Hz</EnumVal><EnumVal ord="5">°C</EnumVal></EnumType>
-    <EnumType id="MultiplierKind"><EnumVal ord="1">k</EnumVal><EnumVal ord="2">M</EnumVal><EnumVal ord="3">m</EnumVal></EnumType>
   </DataTypeTemplates>
 
   <Communication>
