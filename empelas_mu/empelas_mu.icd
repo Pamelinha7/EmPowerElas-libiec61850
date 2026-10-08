@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EmPowerElas - Maquete de Subestacao Digital
+  Merging unit (Raspberry Pi 3): EmpElas_MU
+
+  Faz o papel do TC e do TP digitais da linha. Publica as amostras de
+  corrente e tensao das tres fases por Sampled Values (IEC 61850-9-2),
+  no formato do perfil 9-2LE:
+    - 4 correntes (TCTR1 a TCTR4: fases A, B, C e neutro)
+    - 4 tensoes  (TVTR1 a TVTR4: fases A, B, C e neutro)
+    - 80 amostras por ciclo de 60 Hz (4800 mensagens por segundo)
+    - corrente em mA (1 unidade = 1 mA), tensao em 10 mV (1 unidade = 10 mV)
+
+  O no FLTGGIO1 representa a "arvore na linha": quando ela cai, a fase A
+  entra em falta para a terra. O supervisorio comanda pelo SPCSO1, e o
+  botao fisico ligado nesta Pi faz a mesma coisa.
+-->
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+  <Header id="EmpElas" nameStructure="IEDName" />
+  <IED name="EmpElas_MU">
+    <Services>
+      <GetDirectory /><GetDataObjectDefinition /><ReadWrite /><GetCBValues />
+      <ConfLNs fixPrefix="true" fixLnInst="true" />
+    </Services>
+    <AccessPoint name="AP1">
+      <Server>
+        <Authentication />
+
+        <LDevice inst="MU01">
+          <LN0 lnClass="LLN0" lnType="LLN0_MU" inst="">
+            <!-- Conjunto de dados do SV, na ordem do 9-2LE: valor e qualidade de cada canal -->
+            <DataSet name="PhsMeas1">
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="1" doName="Amp" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="1" doName="Amp" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="2" doName="Amp" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="2" doName="Amp" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="3" doName="Amp" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="3" doName="Amp" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="4" doName="Amp" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TCTR" lnInst="4" doName="Amp" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="1" doName="Vol" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="1" doName="Vol" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="2" doName="Vol" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="2" doName="Vol" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="3" doName="Vol" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="3" doName="Vol" daName="q" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="4" doName="Vol" daName="instMag.i" fc="MX" />
+              <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="4" doName="Vol" daName="q" fc="MX" />
+            </DataSet>
+            <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" />
+            <!-- Bloco de controle do SV. A publicacao em si e feita pelo programa
+                 (server_mu.c); este bloco descreve o fluxo para quem assina. -->
+            <SampledValueControl name="MSVCB01" datSet="PhsMeas1" smvID="EmpElas_MU01" smpRate="80" nofASDU="1" confRev="1" multicast="true">
+              <SmvOpts refreshTime="false" sampleSynchronized="true" sampleRate="false" dataSet="false" security="false" />
+            </SampledValueControl>
+          </LN0>
+
+          <LN lnClass="LPHD" lnType="LPHD1_Typ" inst="1" prefix="">
+            <DOI name="NamPlt" /> <DOI name="PhyNam" /> <DOI name="PhyHealth" /> <DOI name="Proxy" />
+          </LN>
+
+          <!-- TCs digitais: 1 unidade = 1 mA -->
+          <LN lnClass="TCTR" lnType="TCTR_Typ" inst="1" prefix="" desc="Corrente fase A">
+            <DOI name="Amp"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.001</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TCTR" lnType="TCTR_Typ" inst="2" prefix="" desc="Corrente fase B">
+            <DOI name="Amp"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.001</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TCTR" lnType="TCTR_Typ" inst="3" prefix="" desc="Corrente fase C">
+            <DOI name="Amp"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.001</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TCTR" lnType="TCTR_Typ" inst="4" prefix="" desc="Corrente de neutro">
+            <DOI name="Amp"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.001</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+
+          <!-- TPs digitais: 1 unidade = 10 mV -->
+          <LN lnClass="TVTR" lnType="TVTR_Typ" inst="1" prefix="" desc="Tensao fase A">
+            <DOI name="Vol"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.01</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TVTR" lnType="TVTR_Typ" inst="2" prefix="" desc="Tensao fase B">
+            <DOI name="Vol"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.01</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TVTR" lnType="TVTR_Typ" inst="3" prefix="" desc="Tensao fase C">
+            <DOI name="Vol"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.01</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+          <LN lnClass="TVTR" lnType="TVTR_Typ" inst="4" prefix="" desc="Tensao de neutro">
+            <DOI name="Vol"><SDI name="sVC"><DAI name="scaleFactor"><Val>0.01</Val></DAI><DAI name="offset"><Val>0</Val></DAI></SDI></DOI>
+          </LN>
+
+          <!-- A "arvore na linha": falta fase-terra na fase A.
+               SPCSO1 = true: arvore caiu (falta). false: arvore retirada. -->
+          <LN lnClass="GGIO" lnType="GGIO_Falta_Typ" inst="1" prefix="FLT" desc="Simulacao de falta">
+            <DOI name="NamPlt"><DAI name="d"><Val>Arvore na linha: falta fase-terra na fase A (simulacao didatica)</Val></DAI></DOI>
+            <DOI name="SPCSO1"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+          </LN>
+        </LDevice>
+      </Server>
+    </AccessPoint>
+  </IED>
+
+  <DataTypeTemplates>
+    <LNodeType id="LLN0_MU" lnClass="LLN0"><DO name="Mod" type="ENC_Mod"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/></LNodeType>
+    <LNodeType id="LPHD1_Typ" lnClass="LPHD"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="PhyNam" type="DPL_Generic"/><DO name="PhyHealth" type="ENS_Health"/><DO name="Proxy" type="SPS_Generic"/></LNodeType>
+    <LNodeType id="TCTR_Typ" lnClass="TCTR"><DO name="Beh" type="ENS_Beh"/><DO name="Amp" type="SAV_1"/></LNodeType>
+    <LNodeType id="TVTR_Typ" lnClass="TVTR"><DO name="Beh" type="ENS_Beh"/><DO name="Vol" type="SAV_1"/></LNodeType>
+    <LNodeType id="GGIO_Falta_Typ" lnClass="GGIO"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="SPCSO1" type="SPC_Ctrl"/></LNodeType>
+
+    <DOType id="ENC_Mod" cdc="ENC"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
+    <DOType id="ENS_Beh" cdc="ENS"><DA name="stVal" bType="Enum" type="Beh" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="ENS_Health" cdc="ENS"><DA name="stVal" bType="Enum" type="HealthKind" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="SPS_Generic" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
+    <DOType id="SAV_1" cdc="SAV"><DA name="instMag" type="AnalogueValue_I" bType="Struct" fc="MX" /><DA name="q" bType="Quality" fc="MX" qchg="true" /><DA name="sVC" type="ScaledValueConfig_1" bType="Struct" fc="CF" /></DOType>
+    <DOType id="SPC_Ctrl" cdc="SPC"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /><DA name="Oper" type="SPCOperate_1" bType="Struct" fc="CO" /></DOType>
+    <DOType id="LPL_NamPlt" cdc="LPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="swRev" bType="VisString255" fc="DC" /><DA name="d" bType="VisString255" fc="DC" /><DA name="configRev" bType="VisString255" fc="DC" /></DOType>
+    <DOType id="DPL_Generic" cdc="DPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="model" bType="VisString255" fc="DC" /></DOType>
+
+    <DAType id="AnalogueValue_I"><BDA name="i" bType="INT32" /></DAType>
+    <DAType id="ScaledValueConfig_1"><BDA name="scaleFactor" bType="FLOAT32" /><BDA name="offset" bType="FLOAT32" /></DAType>
+    <DAType id="Originator_1"><BDA name="orCat" type="OrCat" bType="Enum" /><BDA name="orIdent" bType="Octet64" /></DAType>
+    <DAType id="SPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+
+    <EnumType id="Beh"><EnumVal ord="1">on</EnumVal><EnumVal ord="2">blocked</EnumVal><EnumVal ord="3">test</EnumVal><EnumVal ord="4">test/blocked</EnumVal><EnumVal ord="5">off</EnumVal></EnumType>
+    <EnumType id="HealthKind"><EnumVal ord="1">ok</EnumVal><EnumVal ord="2">warning</EnumVal><EnumVal ord="3">alarm</EnumVal></EnumType>
+    <EnumType id="CtlModels"><EnumVal ord="0">status-only</EnumVal><EnumVal ord="1">direct-with-normal-security</EnumVal><EnumVal ord="2">sbo-with-normal-security</EnumVal><EnumVal ord="3">direct-with-enhanced-security</EnumVal><EnumVal ord="4">sbo-with-enhanced-security</EnumVal></EnumType>
+    <EnumType id="OrCat"><EnumVal ord="0">not-supported</EnumVal><EnumVal ord="1">bay-control</EnumVal><EnumVal ord="2">station-control</EnumVal><EnumVal ord="3">remote-control</EnumVal><EnumVal ord="4">automatic-bay</EnumVal><EnumVal ord="5">automatic-station</EnumVal><EnumVal ord="6">automatic-remote</EnumVal><EnumVal ord="7">maintenance</EnumVal><EnumVal ord="8">process</EnumVal></EnumType>
+  </DataTypeTemplates>
+
+  <Communication>
+    <SubNetwork name="Subnet1" type="8-MMS">
+      <Text>Rede da maquete EmPowerElas (roteador EmpowerElas)</Text>
+      <ConnectedAP iedName="EmpElas_MU" apName="AP1">
+        <Address>
+          <P type="IP">192.168.10.103</P>
+          <P type="IP-SUBNET">255.255.255.0</P>
+          <P type="IP-GATEWAY">192.168.10.1</P>
+          <P type="OSI-AP-Title">1,3,9,999,1</P>
+          <P type="OSI-AE-Qualifier">12</P>
+          <P type="OSI-PSEL">00000001</P>
+          <P type="OSI-SSEL">0001</P>
+          <P type="OSI-TSEL">0001</P>
+        </Address>
+        <!-- Enderecamento do SV. Quem assina (EmpElas_PROT, ou um IED do
+             laboratorio) precisa usar este MAC, este APPID e o smvID acima. -->
+        <SMV ldInst="MU01" cbName="MSVCB01">
+          <Address>
+            <P type="MAC-Address">01-0C-CD-04-00-01</P>
+            <P type="APPID">4000</P>
+            <P type="VLAN-ID">000</P>
+            <P type="VLAN-PRIORITY">4</P>
+          </Address>
+        </SMV>
+      </ConnectedAP>
+    </SubNetwork>
+  </Communication>
+</SCL>

@@ -25,3 +25,6 @@ empelas_ctrl/import socket.py
 libiec61850-*/
 rpi_ws281x/
 WiringPi/
+empelas_mu/empelas_mu
+empelas_mu/testes/teste_sv
+empelas_mu/testes/falta
