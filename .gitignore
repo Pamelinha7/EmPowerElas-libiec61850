@@ -28,3 +28,5 @@ WiringPi/
 empelas_mu/empelas_mu
 empelas_mu/testes/teste_sv
 empelas_mu/testes/falta
+empelas_prot/testes/manobra
+empelas_ctrl/testes/teste_fita

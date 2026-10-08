@@ -17,6 +17,7 @@
  *   LCD1 linha 2: correntes das fases A, B e C (A)
  *   LCD2 linha 1: TENSAO FASE (kV)
  *   LCD2 linha 2: tensoes das fases A, B e C (kV)
+ *   (o LCD2 mostra os avisos das chaves por alguns segundos)
  *
  * Supervisorio (MMXU1, formato da norma): A (correntes), PhV (tensoes de
  * fase) e PPV (tensoes entre fases). Atualizado a cada segundo e na hora em
@@ -24,6 +25,20 @@
  *
  * Nao existe mais botao de falta aqui: a falta acontece na "linha", que e a
  * merging unit. Este IED so mede e decide, como um rele real.
+ *
+ * IED DE CONTROLE DAS CHAVES (CSWI1-3 e CILO1-3)
+ * O operador manda abrir ou fechar a chave N no CSWIn (supervisorio, MMS).
+ * Antes de aceitar, o CILOn confere o intertravamento: a chave N so abre ou
+ * fecha com o disjuntor N ABERTO (a seccionadora nao foi feita para cortar
+ * corrente). Liberado, o comando sai por GOOSE (gcbCmd: CSWIn.OpOpn ou
+ * CSWIn.OpCls) para a Pi do servo. A Pi do servo publica de volta, tambem
+ * por GOOSE (gcbPos), a posicao dos disjuntores e das chaves: e dai que o
+ * intertravamento sabe o que esta aberto, e e assim que o comando e
+ * confirmado. Sem esse GOOSE, as posicoes ficam desconhecidas e todas as
+ * chaves ficam bloqueadas.
+ *
+ * Avisos das chaves aparecem por alguns segundos no LCD2 (no lugar das
+ * tensoes): CH1 BLOQUEADA / ABRA O DJ1 ANTES, CH1 ABRINDO..., CH1 ABERTA.
  *
  * Compilar e rodar nesta Pi:
  *   make modelo   (sempre que o .icd mudar)
@@ -34,6 +49,9 @@
 #include "iec61850_server.h"
 #include "hal_thread.h"
 #include "sv_subscriber.h"
+#include "goose_receiver.h"
+#include "goose_subscriber.h"
+#include <stdint.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -89,6 +107,35 @@ static uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
 
 // ================= PROTECAO ================================
 #define PTOC_PARTIDA        300.0   // ajuste da sobrecorrente de fase (A)
+
+// ================= CHAVES (CSWI + CILO) =====================
+// Posicoes vindas da Pi do servo. Valores IGUAIS aos do empelas_ctrl.icd.
+// O dsPos traz, nesta ordem: XCBR1, XCBR2, XCBR3, XSWI1, XSWI2, XSWI3.
+#define GOOSE_POS_REF       "EmpElas_CTRLVAO/LLN0$GO$gcbPos"
+#define GOOSE_POS_APPID     0x1002
+static uint8_t GOOSE_POS_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x01, 0x00, 0x02};
+
+// O GOOSE de posicoes se repete a cada 1 s mesmo sem mudanca. Se passar
+// disto sem nenhuma mensagem, as posicoes ficam desconhecidas e todas as
+// chaves ficam bloqueadas (cabo solto ou Pi do servo desligada).
+#define POS_TIMEOUT_MS      3000
+// Tempo que a chave tem para chegar na posicao pedida
+#define CMD_TIMEOUT_MS      3000
+// Quanto tempo um aviso das chaves fica no LCD2
+#define AVISO_MS            4000
+
+// Posicao de ponto duplo, no mesmo formato da Pi do servo e do supervisorio
+// (MmsValue_getBitStringAsInteger)
+#define POS_INTERMEDIARIA   0       // em movimento
+#define POS_ABERTA          1
+#define POS_FECHADA         2
+#define POS_INVALIDA        3
+
+// Motivos de bloqueio do intertravamento
+#define LIBERADA            0
+#define BLOQ_SEM_POSICOES   1       // sem GOOSE da Pi do servo
+#define BLOQ_DJ_FECHADO     2       // disjuntor do vao fechado
+#define BLOQ_DJ_INDEFINIDO  3       // disjuntor em movimento ou invalido
 
 // ============================================================
 
@@ -365,6 +412,384 @@ static void publicarMedicoes(const Medidas* m, bool valida, uint64_t ts) {
     IedServer_unlockDataModel(iedServer);
 }
 
+// ================================================================
+// CHAVES: comando (CSWI1-3) e intertravamento (CILO1-3)
+// ================================================================
+
+// Estado vindo do patio e comandos em andamento
+static pthread_mutex_t mtxChaves = PTHREAD_MUTEX_INITIALIZER;
+static int posDj[3] = {POS_INVALIDA, POS_INVALIDA, POS_INVALIDA};   // disjuntores 1, 2 e 3
+static int posCh[3] = {POS_INVALIDA, POS_INVALIDA, POS_INVALIDA};   // chaves 1, 2 e 3
+static int64_t ultimoPosMs = 0;     // ultimo GOOSE de posicoes (relogio monotonico)
+static int pedido[3];               // aceito pelo operador, ainda nao publicado (0, POS_ABERTA, POS_FECHADA)
+static int emCurso[3];              // publicado no GOOSE, esperando a chave chegar la
+
+// Numero da chave (0, 1, 2) como a letra '1', '2', '3' para o LCD
+#define DIGITO(n) ((char) ('1' + (n)))
+
+// Aviso temporario no LCD2
+static pthread_mutex_t mtxAviso = PTHREAD_MUTEX_INITIALIZER;
+static char avisoL1[17], avisoL2[17];
+static int64_t avisoAteMs = 0;
+static volatile uint32_t avisoSeq = 0;
+
+static void avisoLcd(const char* l1, const char* l2) {
+    pthread_mutex_lock(&mtxAviso);
+    snprintf(avisoL1, sizeof(avisoL1), "%s", l1);
+    snprintf(avisoL2, sizeof(avisoL2), "%s", l2);
+    avisoAteMs = agoraMs() + AVISO_MS;
+    avisoSeq++;
+    pthread_mutex_unlock(&mtxAviso);
+}
+
+// "aberta" para chave, "aberto" para disjuntor
+static const char* textoPos(int p, bool chave) {
+    switch (p) {
+    case POS_ABERTA:        return chave ? "aberta" : "aberto";
+    case POS_FECHADA:       return chave ? "fechada" : "fechado";
+    case POS_INTERMEDIARIA: return "em movimento";
+    default:                return chave ? "invalida" : "invalido";
+    }
+}
+
+// As posicoes valem enquanto o GOOSE da Pi do servo continuar chegando.
+// Chamar com mtxChaves travado.
+static bool posicoesOk(int64_t agora) {
+    return ultimoPosMs > 0 && (agora - ultimoPosMs) < POS_TIMEOUT_MS;
+}
+
+// A regra do intertravamento (CILO): a chave N so abre ou fecha com o
+// disjuntor N aberto. Sem saber a posicao do disjuntor, nao arrisca.
+static int intertravamento(bool posOk, int dj) {
+    if (!posOk) return BLOQ_SEM_POSICOES;
+    if (dj == POS_FECHADA) return BLOQ_DJ_FECHADO;
+    if (dj != POS_ABERTA) return BLOQ_DJ_INDEFINIDO;
+    return LIBERADA;
+}
+
+// Explica um bloqueio: uma frase para o terminal e 16 letras para o LCD
+static void textoBloqueio(int motivo, int n, char* frase, size_t nFrase, char* lcd, size_t nLcd) {
+    switch (motivo) {
+    case BLOQ_SEM_POSICOES:
+        snprintf(frase, nFrase, "nao chegam as posicoes da Pi do servo (GOOSE gcbPos)");
+        snprintf(lcd, nLcd, "SEM POSICOES");
+        break;
+    case BLOQ_DJ_FECHADO:
+        snprintf(frase, nFrase, "o disjuntor %d esta fechado. Abra o disjuntor %d antes", n + 1, n + 1);
+        snprintf(lcd, nLcd, "ABRA O DJ%c ANTES", DIGITO(n));
+        break;
+    default:
+        snprintf(frase, nFrase, "o disjuntor %d esta em posicao indefinida", n + 1);
+        snprintf(lcd, nLcd, "DJ%c INDEFINIDO", DIGITO(n));
+        break;
+    }
+}
+
+// Valor do comando: 1 = abrir, 2 = fechar (igual aos botoes do Elipse)
+static int alvoDoComando(MmsValue* v) {
+    if (v != NULL && MmsValue_getType(v) == MMS_STRUCTURE) v = MmsValue_getElement(v, 0);
+    if (v == NULL) return -1;
+    switch (MmsValue_getType(v)) {
+    case MMS_BIT_STRING: return MmsValue_getBitStringAsInteger(v);
+    case MMS_BOOLEAN:    return MmsValue_getBoolean(v) ? POS_FECHADA : POS_ABERTA;
+    case MMS_INTEGER:
+    case MMS_UNSIGNED:   return MmsValue_toInt32(v);
+    default:             return -1;
+    }
+}
+
+// ----------------------------------------------------------------
+// GOOSE de posicoes da Pi do servo (gcbPos). Chamada a cada mensagem,
+// inclusive as repeticoes: cada uma renova o "estou vivo" das posicoes.
+// ----------------------------------------------------------------
+static void goosePosListener(GooseSubscriber sub, void* parameter) {
+    static uint32_t stNumAvisado = 0;
+    uint32_t stNum = GooseSubscriber_getStNum(sub);
+    MmsValue* valores = GooseSubscriber_getDataSetValues(sub);
+    int p[6];
+    for (int k = 0; k < 6; k++) {
+        MmsValue* v = valores ? MmsValue_getElement(valores, k) : NULL;
+        if (v == NULL || MmsValue_getType(v) != MMS_BIT_STRING) {
+            if (stNum != stNumAvisado)
+                LOG_PRINT("[GOOSE] Posicoes com formato inesperado (stNum=%u), ignoradas. Os dois .icd estao na mesma versao?\n", stNum);
+            stNumAvisado = stNum;
+            return;
+        }
+        p[k] = MmsValue_getBitStringAsInteger(v);
+    }
+
+    pthread_mutex_lock(&mtxChaves);
+    bool mudou = (ultimoPosMs == 0) || memcmp(posDj, p, sizeof(posDj)) != 0
+                                    || memcmp(posCh, p + 3, sizeof(posCh)) != 0;
+    memcpy(posDj, p, sizeof(posDj));
+    memcpy(posCh, p + 3, sizeof(posCh));
+    ultimoPosMs = agoraMs();
+    pthread_mutex_unlock(&mtxChaves);
+
+    if (mudou)
+        LOG_PRINT("[GOOSE] Patio (stNum=%u): DJ1 %s, DJ2 %s, DJ3 %s | CH1 %s, CH2 %s, CH3 %s\n", stNum,
+                  textoPos(p[0], false), textoPos(p[1], false), textoPos(p[2], false),
+                  textoPos(p[3], true), textoPos(p[4], true), textoPos(p[5], true));
+}
+
+// ----------------------------------------------------------------
+// Antes de aceitar um comando de chave (CSWIn.Pos), confere:
+//   1. se a chave ja nao esta manobrando;
+//   2. o intertravamento (CILOn): disjuntor N aberto;
+//   3. se a chave ja nao esta na posicao pedida.
+// Recusado, o supervisorio recebe o erro e o motivo (addCause), o terminal
+// explica e o LCD2 mostra o aviso.
+// ----------------------------------------------------------------
+static CheckHandlerResult checkChave(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
+    int n = (int) (intptr_t) parameter;
+    int alvo = alvoDoComando(ctlVal);
+    if (alvo != POS_ABERTA && alvo != POS_FECHADA) {
+        LOG_PRINT("[CHAVE] Comando da chave %d com valor %d: use 1 (abrir) ou 2 (fechar).\n", n + 1, alvo);
+        return CONTROL_VALUE_INVALID;
+    }
+    const char* acao = (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR";
+    char l1[17], l2[17];
+
+    pthread_mutex_lock(&mtxChaves);
+    bool posOk = posicoesOk(agoraMs());
+    int dj = posDj[n], ch = posCh[n];
+    bool ocupada = pedido[n] || emCurso[n] || (posOk && ch == POS_INTERMEDIARIA);
+    pthread_mutex_unlock(&mtxChaves);
+
+    if (ocupada) {
+        LOG_PRINT("[CHAVE] Pedido de %s a chave %d recusado: ela ainda esta manobrando.\n", acao, n + 1);
+        ControlAction_setAddCause(action, ADD_CAUSE_COMMAND_ALREADY_IN_EXECUTION);
+        return CONTROL_TEMPORARILY_UNAVAILABLE;
+    }
+
+    int motivo = intertravamento(posOk, dj);
+    if (motivo != LIBERADA) {
+        char frase[120];
+        textoBloqueio(motivo, n, frase, sizeof(frase), l2, sizeof(l2));
+        snprintf(l1, sizeof(l1), "CH%c BLOQUEADA", DIGITO(n));
+        avisoLcd(l1, l2);
+        LOG_PRINT("--------------------------------------------------\n");
+        LOG_PRINT("[INTERTRAVAMENTO] Pedido de %s a chave %d RECUSADO: %s.\n", acao, n + 1, frase);
+        LOG_PRINT("--------------------------------------------------\n");
+        ControlAction_setAddCause(action, ADD_CAUSE_BLOCKED_BY_INTERLOCKING);
+        return CONTROL_OBJECT_ACCESS_DENIED;
+    }
+
+    if (ch == alvo) {
+        snprintf(l1, sizeof(l1), "CH%c JA %s", DIGITO(n), (alvo == POS_ABERTA) ? "ABERTA" : "FECHADA");
+        avisoLcd(l1, "NADA A FAZER");
+        LOG_PRINT("[CHAVE] Pedido de %s a chave %d: ela ja esta %s. Nada a fazer.\n", acao, n + 1, textoPos(ch, true));
+        ControlAction_setAddCause(action, ADD_CAUSE_POSITION_REACHED);
+        return CONTROL_OBJECT_ACCESS_DENIED;
+    }
+
+    return CONTROL_ACCEPTED;
+}
+
+// Comando aceito: deixa o pedido para a thread das chaves publicar no GOOSE.
+static ControlHandlerResult operarChave(ControlAction action, void* parameter, MmsValue* value, bool test) {
+    int n = (int) (intptr_t) parameter;
+    int alvo = alvoDoComando(value);
+    if (alvo != POS_ABERTA && alvo != POS_FECHADA) return CONTROL_RESULT_FAILED;
+
+    ClientConnection con = ControlAction_getClientConnection(action);
+    const char* ip = con ? ClientConnection_getPeerAddress(con) : "desconhecido";
+
+    pthread_mutex_lock(&mtxChaves);
+    pedido[n] = alvo;
+    pthread_mutex_unlock(&mtxChaves);
+
+    char l1[17];
+    snprintf(l1, sizeof(l1), "CH%c %s...", DIGITO(n), (alvo == POS_ABERTA) ? "ABRINDO" : "FECHANDO");
+    avisoLcd(l1, "GOOSE -> PATIO");
+    LOG_PRINT("--------------------------------------------------\n");
+    LOG_PRINT("[CHAVE] Operador (%s) pediu %s a chave %d. Intertravamento: liberado (disjuntor %d aberto).\n",
+              ip, (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR", n + 1, n + 1);
+    return CONTROL_RESULT_OK;
+}
+
+// ----------------------------------------------------------------
+// Thread das chaves (a cada 20 ms):
+//   - mantem o CILOn (EnaOpn/EnaCls) e o CSWIn.Pos em dia com o patio;
+//   - publica o comando aceito: liga CSWIn.OpOpn ou OpCls, e o GOOSE sai;
+//   - espera a chave chegar na posicao pedida e desliga o sinal. Se ela
+//     nao chegar em CMD_TIMEOUT_MS, desliga do mesmo jeito e avisa.
+// ----------------------------------------------------------------
+static DataAttribute* const enaOpn[3]  = { IEDMODEL_MEDPROT_CILO1_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO2_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO3_EnaOpn_stVal };
+static DataAttribute* const enaOpnT[3] = { IEDMODEL_MEDPROT_CILO1_EnaOpn_t, IEDMODEL_MEDPROT_CILO2_EnaOpn_t, IEDMODEL_MEDPROT_CILO3_EnaOpn_t };
+static DataAttribute* const enaCls[3]  = { IEDMODEL_MEDPROT_CILO1_EnaCls_stVal, IEDMODEL_MEDPROT_CILO2_EnaCls_stVal, IEDMODEL_MEDPROT_CILO3_EnaCls_stVal };
+static DataAttribute* const enaClsT[3] = { IEDMODEL_MEDPROT_CILO1_EnaCls_t, IEDMODEL_MEDPROT_CILO2_EnaCls_t, IEDMODEL_MEDPROT_CILO3_EnaCls_t };
+static DataAttribute* const cswiPos[3]  = { IEDMODEL_MEDPROT_CSWI1_Pos_stVal, IEDMODEL_MEDPROT_CSWI2_Pos_stVal, IEDMODEL_MEDPROT_CSWI3_Pos_stVal };
+static DataAttribute* const cswiPosQ[3] = { IEDMODEL_MEDPROT_CSWI1_Pos_q, IEDMODEL_MEDPROT_CSWI2_Pos_q, IEDMODEL_MEDPROT_CSWI3_Pos_q };
+static DataAttribute* const cswiPosT[3] = { IEDMODEL_MEDPROT_CSWI1_Pos_t, IEDMODEL_MEDPROT_CSWI2_Pos_t, IEDMODEL_MEDPROT_CSWI3_Pos_t };
+static DataAttribute* const opOpn[3]  = { IEDMODEL_MEDPROT_CSWI1_OpOpn_general, IEDMODEL_MEDPROT_CSWI2_OpOpn_general, IEDMODEL_MEDPROT_CSWI3_OpOpn_general };
+static DataAttribute* const opOpnT[3] = { IEDMODEL_MEDPROT_CSWI1_OpOpn_t, IEDMODEL_MEDPROT_CSWI2_OpOpn_t, IEDMODEL_MEDPROT_CSWI3_OpOpn_t };
+static DataAttribute* const opCls[3]  = { IEDMODEL_MEDPROT_CSWI1_OpCls_general, IEDMODEL_MEDPROT_CSWI2_OpCls_general, IEDMODEL_MEDPROT_CSWI3_OpCls_general };
+static DataAttribute* const opClsT[3] = { IEDMODEL_MEDPROT_CSWI1_OpCls_t, IEDMODEL_MEDPROT_CSWI2_OpCls_t, IEDMODEL_MEDPROT_CSWI3_OpCls_t };
+
+// Escreve uma posicao de ponto duplo (mesma convencao da Pi do servo)
+static void escreverDbpos(DataAttribute* da, int pos) {
+    MmsValue* v = MmsValue_newBitString(2);
+    MmsValue_setBitStringFromInteger(v, pos);
+    IedServer_updateAttributeValue(iedServer, da, v);
+    MmsValue_delete(v);
+}
+
+void* chaves_thread(void* arg) {
+    int motivoAntes[3] = {-1, -1, -1};      // ultimo estado publicado no CILO
+    int posPublicada[3] = {-1, -1, -1};     // ultimo valor publicado no CSWI.Pos (-2 = invalido)
+    int posOkAntes = -1;
+    int64_t inicio[3] = {0, 0, 0};
+    int alvoCmd[3] = {0, 0, 0};             // comando publicado (0 = nenhum)
+
+    while (running) {
+        int64_t agora = agoraMs();
+        int dj[3], ch[3], novo[3];
+
+        pthread_mutex_lock(&mtxChaves);
+        bool posOk = posicoesOk(agora);
+        memcpy(dj, posDj, sizeof(dj));
+        memcpy(ch, posCh, sizeof(ch));
+        for (int n = 0; n < 3; n++) {
+            novo[n] = pedido[n];
+            if (novo[n]) {
+                emCurso[n] = novo[n];
+                pedido[n] = 0;
+            }
+        }
+        pthread_mutex_unlock(&mtxChaves);
+
+        // O GOOSE de posicoes chegou ou sumiu
+        if ((int) posOk != posOkAntes) {
+            if (posOk)
+                LOG_PRINT("[GOOSE] Recebendo as posicoes da Pi do servo (gcbPos). Intertravamento ativo.\n");
+            else if (posOkAntes == 1) {
+                LOG_PRINT("[GOOSE] Sem as posicoes da Pi do servo ha %d s! Todas as chaves bloqueadas.\n", POS_TIMEOUT_MS / 1000);
+                avisoLcd("SEM POSICOES", "CHAVES BLOQ.");
+            }
+            posOkAntes = posOk;
+        }
+
+        int motivo[3];
+        bool escrever = false;              // so trava o modelo se tiver algo novo
+        for (int n = 0; n < 3; n++) {
+            motivo[n] = intertravamento(posOk, dj[n]);
+
+            // Confere de novo na hora de publicar: o disjuntor pode ter
+            // fechado entre o operador pedir e este instante.
+            if (novo[n] && motivo[n] != LIBERADA) {
+                char frase[120], l1[17], l2[17];
+                textoBloqueio(motivo[n], n, frase, sizeof(frase), l2, sizeof(l2));
+                snprintf(l1, sizeof(l1), "CH%c BLOQUEADA", DIGITO(n));
+                avisoLcd(l1, l2);
+                LOG_PRINT("[INTERTRAVAMENTO] Comando da chave %d cancelado antes de sair: %s.\n", n + 1, frase);
+                LOG_PRINT("--------------------------------------------------\n");
+                novo[n] = 0;
+                pthread_mutex_lock(&mtxChaves);
+                emCurso[n] = 0;
+                pthread_mutex_unlock(&mtxChaves);
+            }
+
+            int p = posOk ? ch[n] : -2;
+            if (motivo[n] != motivoAntes[n] || p != posPublicada[n] || novo[n]) escrever = true;
+        }
+        uint64_t ts = Hal_getTimeInMs();
+
+        if (escrever) IedServer_lockDataModel(iedServer);
+        for (int n = 0; n < 3 && escrever; n++) {
+            // CILO: liberado ou nao
+            if (motivo[n] != motivoAntes[n]) {
+                bool ena = (motivo[n] == LIBERADA);
+                IedServer_updateBooleanAttributeValue(iedServer, enaOpn[n], ena);
+                IedServer_updateUTCTimeAttributeValue(iedServer, enaOpnT[n], ts);
+                IedServer_updateBooleanAttributeValue(iedServer, enaCls[n], ena);
+                IedServer_updateUTCTimeAttributeValue(iedServer, enaClsT[n], ts);
+            }
+
+            // CSWI.Pos: espelho da chave real, invalido sem GOOSE
+            int p = posOk ? ch[n] : -2;
+            if (p != posPublicada[n]) {
+                if (posOk) {
+                    escreverDbpos(cswiPos[n], ch[n]);
+                    IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_GOOD);
+                } else {
+                    IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
+                }
+                IedServer_updateUTCTimeAttributeValue(iedServer, cswiPosT[n], ts);
+                posPublicada[n] = p;
+            }
+
+            // Comando novo: liga o sinal (OpOpn ou OpCls). E isto que dispara o GOOSE.
+            if (novo[n]) {
+                DataAttribute* sinal  = (novo[n] == POS_ABERTA) ? opOpn[n]  : opCls[n];
+                DataAttribute* sinalT = (novo[n] == POS_ABERTA) ? opOpnT[n] : opClsT[n];
+                IedServer_updateBooleanAttributeValue(iedServer, sinal, true);
+                IedServer_updateUTCTimeAttributeValue(iedServer, sinalT, ts);
+                inicio[n] = agora;
+                alvoCmd[n] = novo[n];
+            }
+        }
+        if (escrever) IedServer_unlockDataModel(iedServer);
+
+        for (int n = 0; n < 3; n++) {
+            if (novo[n])
+                LOG_PRINT("[GOOSE] Comando %s da chave %d publicado (gcbCmd: CSWI%d.%s).\n",
+                          (novo[n] == POS_ABERTA) ? "ABRIR" : "FECHAR", n + 1, n + 1,
+                          (novo[n] == POS_ABERTA) ? "OpOpn" : "OpCls");
+
+            if (motivo[n] != motivoAntes[n]) {
+                if (motivoAntes[n] >= 0) {       // nao repete no inicio
+                    char frase[120], lcd[17];
+                    if (motivo[n] == LIBERADA)
+                        LOG_PRINT("[INTERTRAVAMENTO] Chave %d liberada (disjuntor %d aberto).\n", n + 1, n + 1);
+                    else {
+                        textoBloqueio(motivo[n], n, frase, sizeof(frase), lcd, sizeof(lcd));
+                        LOG_PRINT("[INTERTRAVAMENTO] Chave %d bloqueada: %s.\n", n + 1, frase);
+                    }
+                }
+                motivoAntes[n] = motivo[n];
+            }
+
+            // Comando em curso: a chave chegou? Passou do tempo?
+            if (alvoCmd[n] && !novo[n]) {
+                bool chegou = posOk && (ch[n] == alvoCmd[n]);
+                bool estourou = (agora - inicio[n]) > CMD_TIMEOUT_MS;
+                if (chegou || estourou) {
+                    DataAttribute* sinal  = (alvoCmd[n] == POS_ABERTA) ? opOpn[n]  : opCls[n];
+                    DataAttribute* sinalT = (alvoCmd[n] == POS_ABERTA) ? opOpnT[n] : opClsT[n];
+                    IedServer_lockDataModel(iedServer);
+                    IedServer_updateBooleanAttributeValue(iedServer, sinal, false);
+                    IedServer_updateUTCTimeAttributeValue(iedServer, sinalT, Hal_getTimeInMs());
+                    IedServer_unlockDataModel(iedServer);
+
+                    char l1[17];
+                    const char* final = (alvoCmd[n] == POS_ABERTA) ? "ABERTA" : "FECHADA";
+                    if (chegou) {
+                        snprintf(l1, sizeof(l1), "CH%c %s", DIGITO(n), final);
+                        avisoLcd(l1, "CONFIRMADO");
+                        LOG_PRINT("[CHAVE] Chave %d %s: confirmado pelo GOOSE da Pi do servo em %lld ms.\n",
+                                  n + 1, final, (long long) (agora - inicio[n]));
+                    } else {
+                        snprintf(l1, sizeof(l1), "CH%c SEM RESPOSTA", DIGITO(n));
+                        avisoLcd(l1, "VEJA A PI SERVO");
+                        LOG_PRINT("[CHAVE] Chave %d nao chegou a ficar %s em %d s. Veja o terminal da Pi do servo.\n",
+                                  n + 1, textoPos(alvoCmd[n], true), CMD_TIMEOUT_MS / 1000);
+                    }
+                    LOG_PRINT("--------------------------------------------------\n");
+
+                    alvoCmd[n] = 0;
+                    pthread_mutex_lock(&mtxChaves);
+                    emCurso[n] = 0;
+                    pthread_mutex_unlock(&mtxChaves);
+                }
+            }
+        }
+
+        Thread_sleep(20);
+    }
+    return NULL;
+}
+
 // ----------------------------------------------------------------
 // Displays
 // ----------------------------------------------------------------
@@ -382,7 +807,8 @@ static int ate999(double x) {
     return (int) r;
 }
 
-static void atualizarDisplays(const Medidas* m, bool svOk, int fases) {
+// aviso != NULL: o LCD2 mostra o aviso das chaves no lugar das tensoes
+static void atualizarDisplays(const Medidas* m, bool svOk, int fases, const char aviso[2][17]) {
     char l[40];
 
     if (lcd1 >= 0) {
@@ -401,7 +827,10 @@ static void atualizarDisplays(const Medidas* m, bool svOk, int fases) {
         lcdLinha(lcd1, 1, l);
     }
 
-    if (lcd2 >= 0) {
+    if (lcd2 >= 0 && aviso != NULL) {
+        lcdLinha(lcd2, 0, aviso[0]);
+        lcdLinha(lcd2, 1, aviso[1]);
+    } else if (lcd2 >= 0) {
         lcdLinha(lcd2, 0, "TENSAO FASE (kV)");
         if (svOk) snprintf(l, sizeof(l), "A%3d B%3d C%3d", ate999(m->v[0] / 1000.0),
                            ate999(m->v[1] / 1000.0), ate999(m->v[2] / 1000.0));
@@ -420,6 +849,8 @@ void* display_thread(void* arg) {
     int fasesAntes = -1;
     int64_t ultimoMmxu = 0, ultimoLcd = 0, ultimoLog = 0;
     uint32_t perdidasAntes = 0;
+    uint32_t avisoSeqAntes = 0;
+    bool avisoAntes = false;
 
     while (running) {
         Medidas m;
@@ -443,14 +874,25 @@ void* display_thread(void* arg) {
         }
 
         int fases = fasesAtuadas;
+
+        // Aviso das chaves no LCD2 (fica AVISO_MS na tela)
+        char aviso[2][17];
+        pthread_mutex_lock(&mtxAviso);
+        bool avisoAtivo = (agora < avisoAteMs);
+        uint32_t seq = avisoSeq;
+        memcpy(aviso[0], avisoL1, sizeof(aviso[0]));
+        memcpy(aviso[1], avisoL2, sizeof(aviso[1]));
+        pthread_mutex_unlock(&mtxAviso);
+
         bool mudou = (svOk != svOkAntes) || (fases != fasesAntes);
+        bool mudouLcd = mudou || (avisoAtivo != avisoAntes) || (seq != avisoSeqAntes);
 
         if (mudou || agora - ultimoMmxu >= 1000) {
             publicarMedicoes(&m, svOk, Hal_getTimeInMs());
             ultimoMmxu = agora;
         }
-        if (mudou || agora - ultimoLcd >= 500) {
-            atualizarDisplays(&m, svOk, fases);
+        if (mudouLcd || agora - ultimoLcd >= 500) {
+            atualizarDisplays(&m, svOk, fases, avisoAtivo ? (const char (*)[17]) aviso : NULL);
             ultimoLcd = agora;
         }
         if (agora - ultimoLog >= 5000) {
@@ -464,6 +906,8 @@ void* display_thread(void* arg) {
 
         svOkAntes = svOk;
         fasesAntes = fases;
+        avisoAntes = avisoAtivo;
+        avisoSeqAntes = seq;
         Thread_sleep(50);
     }
     return NULL;
@@ -498,6 +942,17 @@ int main(int argc, char** argv) {
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
 
+    // Chaves: o operador comanda no CSWIn.Pos (1 = abrir, 2 = fechar), como
+    // fazia antes direto na Pi do servo. O intertravamento roda no check.
+    DataObject* cswi[3] = { IEDMODEL_MEDPROT_CSWI1_Pos, IEDMODEL_MEDPROT_CSWI2_Pos, IEDMODEL_MEDPROT_CSWI3_Pos };
+    for (int n = 0; n < 3; n++) {
+        IedServer_updateCtlModel(iedServer, cswi[n], CONTROL_MODEL_DIRECT_NORMAL);
+        IedServer_setPerformCheckHandler(iedServer, cswi[n], checkChave, (void*) (intptr_t) n);
+        IedServer_setControlHandler(iedServer, cswi[n], (ControlHandler) operarChave, (void*) (intptr_t) n);
+        // Ate chegar o primeiro GOOSE de posicoes, a posicao e desconhecida
+        IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
+    }
+
     // GOOSE sai pelo cabo
     IedServer_setGooseInterfaceId(iedServer, INTERFACE_GOOSE);
     IedServer_start(iedServer, tcpPort);
@@ -507,8 +962,18 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    // Habilita a publicacao de todos os blocos GOOSE do modelo (gcbTrip)
+    // Habilita a publicacao de todos os blocos GOOSE do modelo (gcbTrip e gcbCmd)
     IedServer_enableGoosePublishing(iedServer);
+
+    // Assinatura das posicoes da Pi do servo (gcbPos)
+    GooseReceiver gooseReceiver = GooseReceiver_create();
+    GooseReceiver_setInterfaceId(gooseReceiver, INTERFACE_GOOSE);
+    GooseSubscriber subPos = GooseSubscriber_create(GOOSE_POS_REF, NULL);
+    GooseSubscriber_setDstMac(subPos, GOOSE_POS_DSTMAC);
+    GooseSubscriber_setAppId(subPos, GOOSE_POS_APPID);
+    GooseSubscriber_setListener(subPos, goosePosListener, NULL);
+    GooseReceiver_addSubscriber(gooseReceiver, subPos);
+    GooseReceiver_start(gooseReceiver);
 
     // Assinatura do SV da merging unit
     SVReceiver svReceiver = SVReceiver_create();
@@ -528,10 +993,19 @@ int main(int argc, char** argv) {
         LOG_PRINT("[SV]     ERRO: receptor de SV nao iniciou. Confira se %s existe e se rodou com sudo.\n", INTERFACE_SV);
     LOG_PRINT("[GOOSE]  Publicando gcbTrip em %s (APPID 0x1001).\n", INTERFACE_GOOSE);
     LOG_PRINT("[PROTECAO] Sobrecorrente de fase, sem atraso, partida em %.0f A. Trip tripolar.\n", PTOC_PARTIDA);
+    LOG_PRINT("[GOOSE]  Publicando gcbCmd em %s (APPID 0x1003): comandos das chaves.\n", INTERFACE_GOOSE);
+    if (GooseReceiver_isRunning(gooseReceiver))
+        LOG_PRINT("[GOOSE]  Assinando gcbPos em %s (APPID 0x%04X): posicoes da Pi do servo. Aguardando...\n",
+                  INTERFACE_GOOSE, GOOSE_POS_APPID);
+    else
+        LOG_PRINT("[GOOSE]  ERRO: receptor de GOOSE nao iniciou. Confira se %s existe e se rodou com sudo.\n", INTERFACE_GOOSE);
+    LOG_PRINT("[CHAVES] CSWI1-3 com intertravamento (CILO1-3): chave N so manobra com o disjuntor N aberto.\n");
 
     running = 1;
     Thread displayThread = Thread_create((ThreadExecutionFunction) display_thread, NULL, false);
     Thread_start(displayThread);
+    Thread chavesThread = Thread_create((ThreadExecutionFunction) chaves_thread, NULL, false);
+    Thread_start(chavesThread);
 
     while (running) {
         Thread_sleep(100);
@@ -541,7 +1015,10 @@ int main(int argc, char** argv) {
     SVReceiver_stop(svReceiver);
     SVReceiver_destroy(svReceiver);
     if (sockGrupoSV >= 0) close(sockGrupoSV);
+    GooseReceiver_stop(gooseReceiver);
+    GooseReceiver_destroy(gooseReceiver);
     Thread_destroy(displayThread);
+    Thread_destroy(chavesThread);
     IedServer_disableGoosePublishing(iedServer);
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);

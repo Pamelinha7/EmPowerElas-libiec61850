@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   EmPowerElas - Maquete de Subestacao Digital
-  IED de controle de vao (Raspberry Pi 2)
+  Pi do servo (Raspberry Pi 2): EmpElas_CTRL
 
-  Concentra os equipamentos de manobra: a chave seccionadora acionada
-  por servo e os tres disjuntores indicados por LED.
+  Faz o papel dos equipamentos de patio "inteligentes": as tres chaves
+  seccionadoras (servos) e os tres disjuntores (LEDs).
+
+  Conversa com o IED de controle (EmpElas_PROT, Pi das telinhas) so por GOOSE:
+    - publica gcbPos: a posicao dos 3 disjuntores e das 3 chaves;
+    - assina gcbTrip: o trip da protecao, que abre o disjuntor 1;
+    - assina gcbCmd: os comandos de abrir e fechar as chaves (CSWI.OpOpn e
+      CSWI.OpCls), ja liberados pelo intertravamento (CILO) do IED de controle.
+
+  As chaves nao aceitam comando direto do supervisorio (Pos em status-only):
+  todo comando de chave passa pelo IED de controle, senao daria para passar
+  por cima do intertravamento. Os disjuntores continuam aceitando comando do
+  supervisorio.
 -->
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
   <Header id="EmpElas" nameStructure="IEDName" />
@@ -12,6 +23,7 @@
     <Services>
       <GetDirectory /><GetDataObjectDefinition /><ReadWrite /><GetCBValues />
       <ConfLNs fixPrefix="true" fixLnInst="true" />
+      <GOOSE max="1" />
     </Services>
     <AccessPoint name="AP1">
       <Server>
@@ -20,7 +32,19 @@
         <!-- Vao: manobra e protecao de campo -->
         <LDevice inst="VAO">
           <LN0 lnClass="LLN0" lnType="LLN01" inst="">
+            <!-- Conjunto de dados publicado no GOOSE de posicoes.
+                 O IED de controle le nesta ordem: DJ1, DJ2, DJ3, CH1, CH2, CH3. -->
+            <DataSet name="dsPos">
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="1" doName="Pos" daName="stVal" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="2" doName="Pos" daName="stVal" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="3" doName="Pos" daName="stVal" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="1" doName="Pos" daName="stVal" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="2" doName="Pos" daName="stVal" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="3" doName="Pos" daName="stVal" fc="ST" />
+            </DataSet>
             <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
+            <!-- Bloco de controle GOOSE: publica o dsPos para o IED de controle -->
+            <GSEControl name="gcbPos" datSet="dsPos" appID="EmpElasPos" confRev="1" type="GOOSE" />
           </LN0>
           <LN lnClass="LPHD" lnType="LPHD1_Typ" inst="1" prefix="">
             <DOI name="NamPlt" /> <DOI name="PhyNam" /> <DOI name="PhyHealth" /> <DOI name="OutOv" /> <DOI name="Proxy" /> <DOI name="OpTmh" /> <DOI name="Sim" />
@@ -36,24 +60,52 @@
 
           <!-- Chaves seccionadoras (servos SG90) -->
           <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="1" prefix="">
-            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="BlkOpn" />
+            <!-- So mostra a posicao: o comando chega por GOOSE do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <!-- Comandos desta chave: vem do CSWI1 do IED de controle, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+            </Inputs>
           </LN>
           <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="2" prefix="">
-            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="BlkOpn" />
+            <!-- So mostra a posicao: o comando chega por GOOSE do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <!-- Comandos desta chave: vem do CSWI2 do IED de controle, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="2" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="2" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+            </Inputs>
           </LN>
           <LN lnClass="XSWI" lnType="XSWI1_Typ" inst="3" prefix="">
-            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <DOI name="SwTyp" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="BlkOpn" />
+            <!-- So mostra a posicao: o comando chega por GOOSE do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI> <DOI name="BlkCls" /> <DOI name="NamPlt" />
+            <!-- Comandos desta chave: vem do CSWI3 do IED de controle, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+            </Inputs>
           </LN>
 
           <!-- Disjuntores (pares de LED) -->
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="1" prefix="">
-            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <!-- O trip da protecao abre este disjuntor -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="PTRC" lnInst="1" doName="Tr" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbTrip" />
+            </Inputs>
           </LN>
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="2" prefix="">
-            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
           </LN>
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="3" prefix="">
-            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="Pos" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
           </LN>
         </LDevice>
       </Server>
@@ -94,18 +146,30 @@
 
   <Communication>
     <SubNetwork name="Subnet1" type="8-MMS">
-      <Text>Barramento de estacao - EmPowerElas</Text>
-      <!-- AJUSTAR: colocar o IP real da Pi 2 na rede da maquete -->
+      <Text>Rede da maquete EmPowerElas (roteador EmpowerElas)</Text>
       <ConnectedAP iedName="EmpElas_CTRL" apName="AP1">
         <Address>
-          <PType type="IP">192.168.2.251</PType> <PType type="IP-SUBNET">255.255.255.0</PType>
-          <PType type="IP-GATEWAY">192.168.2.1</PType>
-          <PType type="OSI-AP-Title">1,3,9,999,2</PType>
-          <PType type="OSI-AE-Qualifier">12</PType>
-          <PType type="OSI-PSEL">00000001</PType>
-          <PType type="OSI-SSEL">0001</PType>
-          <PType type="OSI-TSEL">0001</PType>
+          <P type="IP">192.168.10.100</P>
+          <P type="IP-SUBNET">255.255.255.0</P>
+          <P type="IP-GATEWAY">192.168.10.1</P>
+          <P type="OSI-AP-Title">1,3,9,999,2</P>
+          <P type="OSI-AE-Qualifier">12</P>
+          <P type="OSI-PSEL">00000001</P>
+          <P type="OSI-SSEL">0001</P>
+          <P type="OSI-TSEL">0001</P>
         </Address>
+        <!-- Enderecamento do GOOSE de posicoes. O assinante (EmpElas_PROT)
+             precisa usar exatamente este APPID e este MAC. -->
+        <GSE ldInst="VAO" cbName="gcbPos">
+          <Address>
+            <P type="MAC-Address">01-0C-CD-01-00-02</P>
+            <P type="APPID">1002</P>
+            <P type="VLAN-ID">000</P>
+            <P type="VLAN-PRIORITY">4</P>
+          </Address>
+          <MinTime>10</MinTime>
+          <MaxTime>1000</MaxTime>
+        </GSE>
       </ConnectedAP>
     </SubNetwork>
   </Communication>

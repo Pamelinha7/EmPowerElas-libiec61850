@@ -7,7 +7,83 @@
 
 static void initializeValues();
 
+extern DataSet iedModelds_VAO_LLN0_dsPos;
 
+
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda0;
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda1;
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda2;
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda3;
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda4;
+extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda5;
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda0 = {
+  "VAO",
+  false,
+  "XCBR1$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsPos_fcda1
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda1 = {
+  "VAO",
+  false,
+  "XCBR2$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsPos_fcda2
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda2 = {
+  "VAO",
+  false,
+  "XCBR3$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsPos_fcda3
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda3 = {
+  "VAO",
+  false,
+  "XSWI1$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsPos_fcda4
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda4 = {
+  "VAO",
+  false,
+  "XSWI2$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsPos_fcda5
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda5 = {
+  "VAO",
+  false,
+  "XSWI3$ST$Pos$stVal", 
+  -1,
+  NULL,
+  NULL,
+  NULL
+};
+
+DataSet iedModelds_VAO_LLN0_dsPos = {
+  "VAO",
+  "LLN0$dsPos",
+  6,
+  &iedModelds_VAO_LLN0_dsPos_fcda0,
+  NULL
+};
 
 LogicalDevice iedModel_VAO = {
     LogicalDeviceModelType,
@@ -10051,6 +10127,16 @@ DataAttribute iedModel_VAO_XCBR3_BlkCls_Oper_Check = {
 
 
 
+extern GSEControlBlock iedModel_VAO_LLN0_gse0;
+
+static PhyComAddress iedModel_VAO_LLN0_gse0_address = {
+  4,
+  0,
+  4098,
+  {0x1, 0xc, 0xcd, 0x1, 0x0, 0x2}
+};
+
+GSEControlBlock iedModel_VAO_LLN0_gse0 = {&iedModel_VAO_LLN0, "gcbPos", "EmpElasPos", "dsPos", 1, false, &iedModel_VAO_LLN0_gse0_address, 10, 1000, NULL};
 
 
 
@@ -10059,9 +10145,9 @@ DataAttribute iedModel_VAO_XCBR3_BlkCls_Oper_Check = {
 IedModel iedModel = {
     "EmpElas_CTRL",
     &iedModel_VAO,
+    &iedModelds_VAO_LLN0_dsPos,
     NULL,
-    NULL,
-    NULL,
+    &iedModel_VAO_LLN0_gse0,
     NULL,
     NULL,
     NULL,
@@ -10072,4 +10158,16 @@ IedModel iedModel = {
 static void
 initializeValues()
 {
+
+iedModel_VAO_XSWI1_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
+
+iedModel_VAO_XSWI2_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
+
+iedModel_VAO_XSWI3_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
+
+iedModel_VAO_XCBR1_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_VAO_XCBR2_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_VAO_XCBR3_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
 }

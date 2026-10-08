@@ -21,7 +21,7 @@ sudo reboot
 ```
 
 O `setup.sh` faz tudo: instala pacotes, habilita o I2C, desliga o áudio
-onboard (necessário para a fita no PCM), compila e instala a **libiec61850**
+onboard (necessário para a fita, que usa o PWM), compila e instala a **libiec61850**
 e o **WiringPi**, e por fim compila o projeto.
 
 ## Depois do reboot — conferir
@@ -55,10 +55,13 @@ os LEDs dos disjuntores e disparam o rastro na fita.
 Servos nos canais **0, 1 e 2** (colunas da placa). Em cada canal:
 amarelo→PWM (cima), vermelho→V+ (meio), preto→GND (baixo).
 
-### Fita WS2811
-- Dado no **GPIO21 (físico 40)**, **direto** (sem level shifter).
-- 12V e GND por fonte externa; **GND comum** com a Pi.
+### Fita WS2811 (12 V, 5 m, 300 LEDs)
+- Dado no **GPIO18 (físico 12)**, que usa o PWM da Pi, **direto** (sem level shifter). GND da Pi no GND da fita.
+- 12V e GND por fonte externa (nunca pela Pi); **GND comum** com a Pi.
 - Todas as setas dos pedaços no mesmo sentido (dado entra pela cauda da seta).
+- Tamanho e ordem das cores: `FITA_COUNT` e `FITA_TIPO` no `server_ctrl.c`.
+  Para descobrir: `make testes` e `sudo ./testes/teste_fita` (com o
+  `empelas_ctrl` fechado).
 
 ### LEDs dos disjuntores (wiringPi)
 D1: verde=0, verm=2 · D2: verde=3, verm=4 · D3: verde=5, verm=6.

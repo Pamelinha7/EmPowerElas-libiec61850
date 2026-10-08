@@ -6,6 +6,7 @@
 #
 #   make            compila
 #   make modelo     regenera static_model.c/.h a partir do .icd
+#   make testes     compila testes/manobra (comandar chaves e disjuntores pelo terminal)
 #   make clean      apaga o binario e os objetos
 #
 # Se a biblioteca tiver sido instalada em outro prefixo:
@@ -30,7 +31,7 @@ LIBS = -liec61850 -lwiringPi -lwiringPiDev -lpthread -lm -lrt
 # Se reclamar que nao encontra -lsqlite3, comente-a.
 LIBS += -lsqlite3
 
-.PHONY: all modelo clean
+.PHONY: all modelo testes clean
 
 all: $(TARGET)
 
@@ -51,5 +52,13 @@ modelo:
 	@echo ""
 	@echo "Modelo regenerado. Recompile com 'make' e reimporte o $(ICD) no SCADA."
 
+# Ferramenta de teste: so precisa da libiec61850 (roda em qualquer Pi da maquete)
+testes: testes/manobra
+
+testes/manobra: testes/manobra.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) -liec61850 -lpthread -lm -lrt $(filter -lsqlite3,$(LIBS))
+	@echo ""
+	@echo "Pronto. Exemplo:  ./testes/manobra 192.168.10.101 chave 1 abrir"
+
 clean:
-	rm -f $(TARGET) *.o
+	rm -f $(TARGET) *.o testes/manobra

@@ -6,6 +6,7 @@
 #
 #   make            compila
 #   make modelo     regenera static_model.c/.h a partir do .icd
+#   make testes     compila testes/teste_fita (ordem das cores e tamanho da fita)
 #   make clean      apaga o binario e os objetos
 #
 # Se as bibliotecas tiverem sido instaladas em outro prefixo:
@@ -30,7 +31,7 @@ LIBS = -liec61850 -lws2811 -lwiringPi -lpthread -lm -lrt
 # Se reclamar que nao encontra -lsqlite3, comente-a.
 LIBS += -lsqlite3
 
-.PHONY: all modelo clean
+.PHONY: all modelo testes clean
 
 all: $(TARGET)
 
@@ -47,5 +48,13 @@ modelo:
 	@echo ""
 	@echo "Modelo regenerado. Recompile com 'make' e reimporte o $(ICD) no SCADA."
 
+# Teste da fita: so precisa da rpi_ws281x. Usa o ws2811.h desta pasta.
+testes: testes/teste_fita
+
+testes/teste_fita: testes/teste_fita.c
+	$(CC) $(CFLAGS) -I. $(CPPFLAGS) $< -o $@ $(LDFLAGS) -lws2811 -lm -lrt
+	@echo ""
+	@echo "Pronto. Feche o empelas_ctrl e rode:  sudo ./testes/teste_fita"
+
 clean:
-	rm -f $(TARGET) *.o
+	rm -f $(TARGET) *.o testes/teste_fita
