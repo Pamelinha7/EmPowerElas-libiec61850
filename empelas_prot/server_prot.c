@@ -502,8 +502,24 @@ static int alvoDoComando(MmsValue* v) {
 // GOOSE de posicoes da Pi do servo (gcbPos). Chamada a cada mensagem,
 // inclusive as repeticoes: cada uma renova o "estou vivo" das posicoes.
 // ----------------------------------------------------------------
+// Diagnostico (sudo DEBUG_GOOSE=1 ./empelas_prot): conta o que chega no
+// receptor de GOOSE deste programa e mostra a cada 5 s.
+static volatile uint32_t diagPosChamadas = 0, diagOutras = 0;
+
+static void gooseObservador(GooseSubscriber sub, void* parameter) {
+    uint32_t n = ++diagOutras;
+    if (n <= 5) {
+        uint8_t mac[6];
+        GooseSubscriber_getDstMac(sub, mac);
+        LOG_PRINT("[GOOSE-DIAG] chegou outra mensagem: %s | APPID 0x%04X | destino %02X-%02X-%02X-%02X-%02X-%02X\n",
+                  GooseSubscriber_getGoCbRef(sub), (unsigned) GooseSubscriber_getAppId(sub),
+                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    }
+}
+
 static void goosePosListener(GooseSubscriber sub, void* parameter) {
     static uint32_t stNumAvisado = 0;
+    diagPosChamadas++;
     uint32_t stNum = GooseSubscriber_getStNum(sub);
     MmsValue* valores = GooseSubscriber_getDataSetValues(sub);
     int p[6];
@@ -902,6 +918,9 @@ void* display_thread(void* arg) {
                           (unsigned) (perdidas - perdidasAntes));
             perdidasAntes = perdidas;
             ultimoLog = agora;
+            if (getenv("DEBUG_GOOSE"))
+                LOG_PRINT("[GOOSE-DIAG] recebidas pelo assinante gcbPos: %u | outras: %u\n",
+                          (unsigned) diagPosChamadas, (unsigned) diagOutras);
         }
 
         svOkAntes = svOk;
@@ -973,6 +992,14 @@ int main(int argc, char** argv) {
     GooseSubscriber_setAppId(subPos, GOOSE_POS_APPID);
     GooseSubscriber_setListener(subPos, goosePosListener, NULL);
     GooseReceiver_addSubscriber(gooseReceiver, subPos);
+    bool diagGoose = (getenv("DEBUG_GOOSE") != NULL);
+    if (diagGoose) {
+        // Depois do subPos na lista: so pega o que o subPos NAO reconheceu
+        GooseSubscriber obs = GooseSubscriber_create("", NULL);
+        GooseSubscriber_setObserver(obs);
+        GooseSubscriber_setListener(obs, gooseObservador, NULL);
+        GooseReceiver_addSubscriber(gooseReceiver, obs);
+    }
     GooseReceiver_start(gooseReceiver);
 
     // Assinatura do SV da merging unit

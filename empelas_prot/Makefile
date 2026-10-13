@@ -6,7 +6,8 @@
 #
 #   make            compila
 #   make modelo     regenera static_model.c/.h a partir do .icd
-#   make testes     compila testes/manobra (comandar chaves e disjuntores pelo terminal)
+#   make testes     compila os testes: manobra (comandar chaves e disjuntores pelo
+#                   terminal) e ver_goose (ver os GOOSE da maquete chegando)
 #   make clean      apaga o binario e os objetos
 #
 # Se a biblioteca tiver sido instalada em outro prefixo:
@@ -53,12 +54,17 @@ modelo:
 	@echo "Modelo regenerado. Recompile com 'make' e reimporte o $(ICD) no SCADA."
 
 # Ferramenta de teste: so precisa da libiec61850 (roda em qualquer Pi da maquete)
-testes: testes/manobra
+testes: testes/manobra testes/ver_goose
 
 testes/manobra: testes/manobra.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) -liec61850 -lpthread -lm -lrt $(filter -lsqlite3,$(LIBS))
 	@echo ""
 	@echo "Pronto. Exemplo:  ./testes/manobra 192.168.10.101 chave 1 abrir"
 
+testes/ver_goose: testes/ver_goose.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS) -liec61850 -lpthread -lm -lrt $(filter -lsqlite3,$(LIBS))
+	@echo ""
+	@echo "Pronto. Rode com:  sudo ./testes/ver_goose"
+
 clean:
-	rm -f $(TARGET) *.o testes/manobra
+	rm -f $(TARGET) *.o testes/manobra testes/ver_goose
