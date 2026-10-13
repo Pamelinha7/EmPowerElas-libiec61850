@@ -46,6 +46,7 @@
  *   sudo ./empelas_prot
  */
 
+#define _GNU_SOURCE        // F_SETPIPE_SZ (tamanho do cano do som)
 #include "iec61850_server.h"
 #include "hal_thread.h"
 #include "sv_subscriber.h"
@@ -64,6 +65,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <sys/wait.h>      // waitpid: fim do aplay do som
 #include <net/if.h>
 #include <linux/if_packet.h>
 #include <wiringPi.h>
@@ -841,6 +843,166 @@ void* chaves_thread(void* arg) {
 }
 
 // ----------------------------------------------------------------
+// Som do transformador (amplificador PAM8403 + alto-falante, na saida de
+// audio P2 desta Pi).
+//
+// Um transformador zumbe enquanto esta energizado. Aqui ele e alimentado
+// pelos tres vaos: fica energizado enquanto pelo menos um vao tiver o
+// disjuntor E a chave fechados (posicoes que chegam pelo GOOSE da Pi do
+// servo). O trip abre o disjuntor e o zumbido para na hora.
+//
+// O som e o arquivo SOM_ARQUIVO (WAV PCM de 16 bits, na pasta do programa),
+// tocado em repeticao pelo aplay. Sem o arquivo ou sem o aplay, o programa
+// segue normalmente, so sem som.
+// ----------------------------------------------------------------
+#define SOM_ARQUIVO   "zumbido.wav"
+#define SOM_VOLUME    1.0          // 0.0 a 1.0 (multiplica as amostras)
+
+static int16_t* somDados = NULL;   // amostras (todos os canais intercalados)
+static size_t somTotal = 0;        // quantidade de amostras
+static unsigned somTaxa = 0, somCanais = 0;
+static pid_t somPid = -1;
+static int somFd = -1;
+
+static uint32_t le32(const uint8_t* b) { return b[0] | (b[1] << 8) | (b[2] << 16) | ((uint32_t) b[3] << 24); }
+static uint16_t le16(const uint8_t* b) { return (uint16_t) (b[0] | (b[1] << 8)); }
+
+// Le um WAV PCM 16 bits inteiro para a memoria
+static bool carregarWav(const char* nome) {
+    FILE* f = fopen(nome, "rb");
+    if (f == NULL) return false;
+    uint8_t h[12];
+    bool ok = false, temFmt = false;
+    if (fread(h, 1, 12, f) == 12 && memcmp(h, "RIFF", 4) == 0 && memcmp(h + 8, "WAVE", 4) == 0) {
+        uint8_t c[8];
+        while (fread(c, 1, 8, f) == 8) {
+            uint32_t tam = le32(c + 4);
+            if (memcmp(c, "fmt ", 4) == 0 && tam >= 16) {
+                uint8_t fm[16];
+                if (fread(fm, 1, 16, f) != 16) break;
+                if (le16(fm) != 1 || le16(fm + 14) != 16) break;   // so PCM de 16 bits
+                somCanais = le16(fm + 2);
+                somTaxa = le32(fm + 4);
+                temFmt = true;
+                fseek(f, (long) (tam - 16 + (tam & 1)), SEEK_CUR);
+            } else if (memcmp(c, "data", 4) == 0 && temFmt) {
+                somDados = malloc(tam);
+                if (somDados && fread(somDados, 1, tam, f) == tam) {
+                    somTotal = tam / 2;
+                    ok = (somTotal >= somCanais && somCanais > 0);
+                }
+                break;
+            } else {
+                fseek(f, (long) (tam + (tam & 1)), SEEK_CUR);
+            }
+        }
+    }
+    fclose(f);
+    if (ok && SOM_VOLUME < 1.0)
+        for (size_t i = 0; i < somTotal; i++) somDados[i] = (int16_t) (somDados[i] * SOM_VOLUME);
+    return ok;
+}
+
+// Abre o aplay recebendo as amostras por um cano (pipe)
+static bool somLigar(void) {
+    int p[2];
+    if (pipe(p) != 0) return false;
+#ifdef F_SETPIPE_SZ
+    fcntl(p[1], F_SETPIPE_SZ, 4096);   // cano curto: o som para logo quando o disjuntor abre
+#endif
+    char taxa[16], canais[8];
+    snprintf(taxa, sizeof(taxa), "%u", somTaxa);
+    snprintf(canais, sizeof(canais), "%u", somCanais);
+    pid_t pid = fork();
+    if (pid < 0) { close(p[0]); close(p[1]); return false; }
+    if (pid == 0) {
+        dup2(p[0], STDIN_FILENO);
+        close(p[0]); close(p[1]);
+        int nulo = open("/dev/null", O_WRONLY);
+        if (nulo >= 0) { dup2(nulo, STDERR_FILENO); close(nulo); }
+        execlp("aplay", "aplay", "-q", "-t", "raw", "-f", "S16_LE", "-r", taxa, "-c", canais,
+               "-B", "100000", (char*) NULL);
+        _exit(127);
+    }
+    close(p[0]);
+    somPid = pid;
+    somFd = p[1];
+    return true;
+}
+
+static void somDesligar(void) {
+    if (somPid > 0) {
+        kill(somPid, SIGTERM);
+        waitpid(somPid, NULL, 0);
+    }
+    if (somFd >= 0) close(somFd);
+    somPid = -1;
+    somFd = -1;
+}
+
+static bool transformadorEnergizado(void) {
+    bool energizado = false;
+    pthread_mutex_lock(&mtxChaves);
+    if (posicoesOk(agoraMs()))
+        for (int n = 0; n < 3; n++)
+            if (posDj[n] == POS_FECHADA && posCh[n] == POS_FECHADA) energizado = true;
+    pthread_mutex_unlock(&mtxChaves);
+    return energizado;
+}
+
+void* som_thread(void* arg) {
+    if (!carregarWav(SOM_ARQUIVO)) {
+        LOG_PRINT("[SOM]    Sem o arquivo %s (WAV PCM 16 bits na pasta do programa): sem zumbido.\n", SOM_ARQUIVO);
+        return NULL;
+    }
+    LOG_PRINT("[SOM]    Zumbido do transformador: %s (%.1f s, %u Hz). Toca com o transformador energizado.\n",
+              SOM_ARQUIVO, (double) somTotal / somCanais / somTaxa, somTaxa);
+
+    const size_t bloco = (somTaxa / 20) * somCanais;   // 50 ms de som por escrita
+    size_t pos = 0;
+    bool tocando = false;
+    int falhas = 0;
+
+    while (running) {
+        bool energizado = transformadorEnergizado();
+        if (energizado && !tocando) {
+            if (somLigar()) {
+                tocando = true;
+                LOG_PRINT("[SOM] Transformador energizado: zumbido ligado.\n");
+            }
+        } else if (!energizado && tocando) {
+            somDesligar();
+            tocando = false;
+            LOG_PRINT("[SOM] Transformador desenergizado: zumbido desligado.\n");
+        }
+
+        if (!tocando) {
+            Thread_sleep(50);
+            continue;
+        }
+
+        // Escreve o proximo pedaco, voltando ao inicio do arquivo quando acaba.
+        // A escrita espera o aplay tocar, entao este laco anda no ritmo do som.
+        size_t n = bloco;
+        if (pos + n > somTotal) n = somTotal - pos;
+        ssize_t w = write(somFd, somDados + pos, n * sizeof(int16_t));
+        if (w <= 0) {
+            somDesligar();
+            tocando = false;
+            if (++falhas <= 3)
+                LOG_PRINT("[SOM] O aplay parou (saida de audio ocupada ou desligada?). Tentando de novo em 2 s.\n");
+            Thread_sleep(2000);
+            continue;
+        }
+        falhas = 0;
+        pos = (pos + (size_t) w / sizeof(int16_t)) % somTotal;
+        pos -= pos % somCanais;
+    }
+    somDesligar();
+    return NULL;
+}
+
+// ----------------------------------------------------------------
 // Displays
 // ----------------------------------------------------------------
 static void lcdLinha(int lcd, int linha, const char* texto) {
@@ -969,6 +1131,7 @@ void* display_thread(void* arg) {
 int main(int argc, char** argv) {
     signal(SIGINT, sigint_handler);
     signal(SIGTERM, sigint_handler);
+    signal(SIGPIPE, SIG_IGN);   // o aplay do som pode fechar; nao derruba o programa
 
     if (!travarInstancia("empelas_prot")) {
         LOG_PRINT("ERRO: o empelas_prot ja esta rodando nesta Pi. Feche o outro (Ctrl+C no terminal dele)\n"
@@ -1068,6 +1231,8 @@ int main(int argc, char** argv) {
     Thread_start(displayThread);
     Thread chavesThread = Thread_create((ThreadExecutionFunction) chaves_thread, NULL, false);
     Thread_start(chavesThread);
+    Thread somThread = Thread_create((ThreadExecutionFunction) som_thread, NULL, false);
+    Thread_start(somThread);
 
     int ciclos = 0;
     while (running) {
@@ -1083,6 +1248,7 @@ int main(int argc, char** argv) {
     GooseReceiver_destroy(gooseReceiver);
     Thread_destroy(displayThread);
     Thread_destroy(chavesThread);
+    Thread_destroy(somThread);                  // desliga o zumbido
     IedServer_disableGoosePublishing(iedServer);
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);
