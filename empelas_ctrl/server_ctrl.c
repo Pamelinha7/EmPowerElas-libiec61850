@@ -128,7 +128,7 @@
 // Ordem das cores dentro de cada pixel. Muda de um fabricante para outro.
 // Descubra com testes/teste_fita (passo 1) e troque se precisar por:
 // WS2811_STRIP_RGB, _RBG, _GRB, _GBR, _BRG ou _BGR.
-#define FITA_TIPO       WS2811_STRIP_RGB
+#define FITA_TIPO       WS2811_STRIP_BRG
 #define FITA_FREQ       WS2811_TARGET_FREQ  // 800kHz
 #define FITA_BRILHO     128       // 0-255 (metade p/ reduzir corrente)
 
