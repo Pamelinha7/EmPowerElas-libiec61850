@@ -56,6 +56,7 @@
 #include "hal_thread.h"
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/timex.h>     // adjtimex: o relogio esta sincronizado?
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -263,6 +264,25 @@ static ws2811_t fita = {
 void sigint_handler(int signalId) { running = 0; }
 
 #define LOG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+
+// ----------------------------------------------------------------
+// Relogio. O chrony acerta as tres Pis pelo cabo (a Pi das telinhas e o
+// relogio da maquete) e avisa o sistema quando o relogio esta sincronizado.
+// Os horarios (t) que este IED publica saem marcados conforme esse estado:
+// sincronizado ou "relogio nao sincronizado". Confere a cada 5 s.
+// ----------------------------------------------------------------
+static void atualizarRelogio(void) {
+    static int antes = -1;
+    struct timex tx;
+    memset(&tx, 0, sizeof(tx));                  // modes = 0: so consulta
+    int sinc = (adjtimex(&tx) != TIME_ERROR);
+    IedServer_setTimeQuality(iedServer, true, false, !sinc, 10);
+    if (sinc != antes) {
+        if (sinc) LOG_PRINT("[RELOGIO] Relogio sincronizado (chrony): horarios marcados como sincronizados.\n");
+        else      LOG_PRINT("[RELOGIO] Relogio SEM sincronismo: horarios marcados como nao sincronizados.\n");
+        antes = sinc;
+    }
+}
 
 // ----------------------------------------------------------------
 // Garante que so existe uma copia deste programa rodando na Pi. Duas
@@ -759,6 +779,7 @@ int main(int argc, char** argv) {
     if (dev_null != -1) dup2(dev_null, STDOUT_FILENO);
 
     iedServer = IedServer_create(&iedModel);
+    atualizarRelogio();                         // antes de qualquer horario ser escrito
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
 
@@ -851,8 +872,10 @@ int main(int argc, char** argv) {
     Thread patioThread = Thread_create((ThreadExecutionFunction)patio_thread, NULL, false);
     Thread_start(patioThread);
 
+    int ciclos = 0;
     while (running) {
         Thread_sleep(100);
+        if (++ciclos % 50 == 0) atualizarRelogio();     // a cada 5 s
     }
 
     LOG_PRINT("\n[SISTEMA] Encerrando...\n");

@@ -31,6 +31,7 @@
 #include "sv_publisher.h"
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/timex.h>     // adjtimex: o relogio esta sincronizado?
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -107,6 +108,25 @@ static volatile uint32_t svEnviadas = 0;
 static volatile uint32_t svPuladas = 0;     // amostras puladas por atraso
 
 static void sigint_handler(int signalId) { running = 0; }
+
+// ----------------------------------------------------------------
+// Relogio. O chrony acerta as tres Pis pelo cabo (a Pi das telinhas e o
+// relogio da maquete) e avisa o sistema quando o relogio esta sincronizado.
+// Os horarios (t) que este IED publica saem marcados conforme esse estado:
+// sincronizado ou "relogio nao sincronizado". Confere a cada 5 s.
+// ----------------------------------------------------------------
+static void atualizarRelogio(void) {
+    static int antes = -1;
+    struct timex tx;
+    memset(&tx, 0, sizeof(tx));                  // modes = 0: so consulta
+    int sinc = (adjtimex(&tx) != TIME_ERROR);
+    IedServer_setTimeQuality(iedServer, true, false, !sinc, 10);
+    if (sinc != antes) {
+        if (sinc) LOG_PRINT("[RELOGIO] Relogio sincronizado (chrony): horarios marcados como sincronizados.\n");
+        else      LOG_PRINT("[RELOGIO] Relogio SEM sincronismo: horarios marcados como nao sincronizados.\n");
+        antes = sinc;
+    }
+}
 
 // ----------------------------------------------------------------
 // Garante que so existe uma copia deste programa rodando na Pi. Duas
@@ -337,6 +357,7 @@ int main(int argc, char** argv) {
     if (dev_null != -1) dup2(dev_null, STDOUT_FILENO);
 
     iedServer = IedServer_create(&iedModel);
+    atualizarRelogio();                         // antes de qualquer horario ser escrito
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
 
@@ -381,7 +402,10 @@ int main(int argc, char** argv) {
         sv.idxQual[i] = SVPublisher_ASDU_addQuality(sv.asdu);
     }
     SVPublisher_setupComplete(sv.pub);
-    // Relogio da MU nao e sincronizado com nada (sem GPS/PTP): smpSynch = 0.
+    // smpSynch continua 0 (nao sincronizado) mesmo com o chrony. O chrony acerta
+    // o relogio com precisao de fracoes de milissegundo, o que basta para os
+    // horarios dos eventos, mas um SV sincronizado (smpSynch 1 ou 2) exige
+    // precisao de microssegundo, com PTP ou um pulso por segundo de GPS.
     // Esta funcao so pode ser chamada depois do setupComplete.
     SVPublisher_ASDU_setSmpSynch(sv.asdu, IEC61850_SV_SMPSYNC_NOT_SYNCHRONIZED);
 
@@ -420,6 +444,7 @@ int main(int argc, char** argv) {
     int segundos = 0;
     while (running) {
         Thread_sleep(1000);
+        if (segundos % 5 == 0) atualizarRelogio();     // a cada 5 s
         if (++segundos % 10 == 0) {
             uint32_t total = svEnviadas;
             LOG_PRINT("[SV] %u mensagens/s | puladas por atraso: %u | arvore na linha: %s\n",
