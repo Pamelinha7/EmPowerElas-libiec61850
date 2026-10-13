@@ -47,6 +47,20 @@
               <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="4" doName="Vol" daName="instMag.i" fc="MX" />
               <FCDA ldInst="MU01" prefix="" lnClass="TVTR" lnInst="4" doName="Vol" daName="q" fc="MX" />
             </DataSet>
+            <!-- Conjunto de dados dos eventos (cada dado inteiro: valor, qualidade e horario) -->
+            <DataSet name="dsEventos">
+              <FCDA ldInst="MU01" prefix="FLT" lnClass="GGIO" lnInst="1" doName="SPCSO1" fc="ST" />
+            </DataSet>
+            <!-- Relatorio de eventos: avisa o supervisorio a cada mudanca de estado da arvore (falta),
+                 com o horario de cada valor. Bufferizado: o que acontecer enquanto o
+                 supervisorio estiver desconectado e entregue quando ele voltar.
+                 max="2": dois clientes ao mesmo tempo (brcbEventos01 e brcbEventos02),
+                 por exemplo o Elipse e o programa testes/ver_eventos. -->
+            <ReportControl name="brcbEventos" rptID="EmpElas_MU_Eventos" datSet="dsEventos" confRev="1" buffered="true" bufTime="50" intgPd="0">
+              <TrgOps dchg="true" qchg="true" dupd="false" period="false" gi="true" />
+              <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
+              <RptEnabled max="2" />
+            </ReportControl>
             <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" />
             <!-- Bloco de controle do SV. A publicacao em si e feita pelo programa
                  (server_mu.c); este bloco descreve o fluxo para quem assina. -->

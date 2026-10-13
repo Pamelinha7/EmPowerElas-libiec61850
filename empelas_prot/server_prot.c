@@ -244,6 +244,13 @@ static void textoFases(int fases, char* s) {
     s[k] = '\0';
 }
 
+// Grava um booleano no modelo. semAviso = true: grava direto, sem disparar
+// relatorio nem GOOSE (usado quando outro atributo do mesmo dado vai avisar).
+static void escreverBool(DataAttribute* da, bool valor, bool semAviso) {
+    if (semAviso) MmsValue_setBoolean(da->mmsValue, valor);
+    else          IedServer_updateBooleanAttributeValue(iedServer, da, valor);
+}
+
 // ----------------------------------------------------------------
 // Protecao de sobrecorrente de fase, sem atraso (funcao ANSI 50).
 //
@@ -273,22 +280,29 @@ static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t 
     bool geralAntes = (antes != 0);
 
     IedServer_lockDataModel(iedServer);
-    // Partida (Str) e operacao (Op): sem atraso, mudam juntas
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, geral);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsA, (fases & 1) != 0);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsB, (fases & 2) != 0);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_phsC, (fases & 4) != 0);
+    // Horarios primeiro. O relatorio de eventos copia o dado inteiro (valor,
+    // qualidade e horario) quando o valor muda, entao o horario ja precisa
+    // estar certo nessa hora.
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_t, ts);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, geral);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsA, (fases & 1) != 0);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsB, (fases & 2) != 0);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_phsC, (fases & 4) != 0);
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_t, ts);
-    // Trip tripolar. Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
-    if (geral != geralAntes) {
-        IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, geral);
+    if (geral != geralAntes)
         IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_t, ts);
-    }
+
+    // Partida (Str) e operacao (Op): sem atraso, mudam juntas. Quando o
+    // "general" tambem muda, as fases sao gravadas sem avisar o relatorio:
+    // quem avisa e o general, uma vez so, com as fases ja certas.
+    bool soGeral = (geral != geralAntes);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsA, (fases & 1) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsB, (fases & 2) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsC, (fases & 4) != 0, soGeral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, geral);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsA, (fases & 1) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsB, (fases & 2) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsC, (fases & 4) != 0, soGeral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, geral);
+    // Trip tripolar. Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
+    if (geral != geralAntes)
+        IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, geral);
     IedServer_unlockDataModel(iedServer);
     pthread_mutex_unlock(&mtxProt);
 
@@ -736,22 +750,22 @@ void* chaves_thread(void* arg) {
             // CILO: liberado ou nao
             if (motivo[n] != motivoAntes[n]) {
                 bool ena = (motivo[n] == LIBERADA);
+                IedServer_updateUTCTimeAttributeValue(iedServer, enaOpnT[n], ts);   // horario antes do valor
                 IedServer_updateBooleanAttributeValue(iedServer, enaOpn[n], ena);
-                IedServer_updateUTCTimeAttributeValue(iedServer, enaOpnT[n], ts);
-                IedServer_updateBooleanAttributeValue(iedServer, enaCls[n], ena);
                 IedServer_updateUTCTimeAttributeValue(iedServer, enaClsT[n], ts);
+                IedServer_updateBooleanAttributeValue(iedServer, enaCls[n], ena);
             }
 
             // CSWI.Pos: espelho da chave real, invalido sem GOOSE
             int p = posOk ? ch[n] : -2;
             if (p != posPublicada[n]) {
+                IedServer_updateUTCTimeAttributeValue(iedServer, cswiPosT[n], ts);   // horario antes do valor
                 if (posOk) {
                     escreverDbpos(cswiPos[n], ch[n]);
                     IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_GOOD);
                 } else {
                     IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
                 }
-                IedServer_updateUTCTimeAttributeValue(iedServer, cswiPosT[n], ts);
                 posPublicada[n] = p;
             }
 
@@ -759,8 +773,8 @@ void* chaves_thread(void* arg) {
             if (novo[n]) {
                 DataAttribute* sinal  = (novo[n] == POS_ABERTA) ? opOpn[n]  : opCls[n];
                 DataAttribute* sinalT = (novo[n] == POS_ABERTA) ? opOpnT[n] : opClsT[n];
-                IedServer_updateBooleanAttributeValue(iedServer, sinal, true);
                 IedServer_updateUTCTimeAttributeValue(iedServer, sinalT, ts);
+                IedServer_updateBooleanAttributeValue(iedServer, sinal, true);
                 inicio[n] = agora;
                 alvoCmd[n] = novo[n];
             }

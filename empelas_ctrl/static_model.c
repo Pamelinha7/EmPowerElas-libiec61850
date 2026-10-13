@@ -8,6 +8,7 @@
 static void initializeValues();
 
 extern DataSet iedModelds_VAO_LLN0_dsPos;
+extern DataSet iedModelds_VAO_LLN0_dsEventos;
 
 
 extern DataSetEntry iedModelds_VAO_LLN0_dsPos_fcda0;
@@ -82,6 +83,81 @@ DataSet iedModelds_VAO_LLN0_dsPos = {
   "LLN0$dsPos",
   6,
   &iedModelds_VAO_LLN0_dsPos_fcda0,
+  &iedModelds_VAO_LLN0_dsEventos
+};
+
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda0;
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda1;
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda2;
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda3;
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda4;
+extern DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda5;
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda0 = {
+  "VAO",
+  false,
+  "XCBR1$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsEventos_fcda1
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda1 = {
+  "VAO",
+  false,
+  "XCBR2$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsEventos_fcda2
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda2 = {
+  "VAO",
+  false,
+  "XCBR3$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsEventos_fcda3
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda3 = {
+  "VAO",
+  false,
+  "XSWI1$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsEventos_fcda4
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda4 = {
+  "VAO",
+  false,
+  "XSWI2$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_VAO_LLN0_dsEventos_fcda5
+};
+
+DataSetEntry iedModelds_VAO_LLN0_dsEventos_fcda5 = {
+  "VAO",
+  false,
+  "XSWI3$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  NULL
+};
+
+DataSet iedModelds_VAO_LLN0_dsEventos = {
+  "VAO",
+  "LLN0$dsEventos",
+  6,
+  &iedModelds_VAO_LLN0_dsEventos_fcda0,
   NULL
 };
 
@@ -10124,7 +10200,11 @@ DataAttribute iedModel_VAO_XCBR3_BlkCls_Oper_Check = {
     NULL,
     0};
 
+extern ReportControlBlock iedModel_VAO_LLN0_report0;
+extern ReportControlBlock iedModel_VAO_LLN0_report1;
 
+ReportControlBlock iedModel_VAO_LLN0_report0 = {&iedModel_VAO_LLN0, "brcbEventos01", "EmpElas_CTRL_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &iedModel_VAO_LLN0_report1};
+ReportControlBlock iedModel_VAO_LLN0_report1 = {&iedModel_VAO_LLN0, "brcbEventos02", "EmpElas_CTRL_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, NULL};
 
 
 extern GSEControlBlock iedModel_VAO_LLN0_gse0;
@@ -10146,7 +10226,7 @@ IedModel iedModel = {
     "EmpElas_CTRL",
     &iedModel_VAO,
     &iedModelds_VAO_LLN0_dsPos,
-    NULL,
+    &iedModel_VAO_LLN0_report0,
     &iedModel_VAO_LLN0_gse0,
     NULL,
     NULL,

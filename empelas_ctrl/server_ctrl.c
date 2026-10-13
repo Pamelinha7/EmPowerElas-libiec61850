@@ -386,8 +386,8 @@ static void escreverPosicao(DataAttribute* stVal, DataAttribute* t, int pos) {
     MmsValue_setBitStringFromInteger(v, pos);
 
     IedServer_lockDataModel(iedServer);
+    IedServer_updateUTCTimeAttributeValue(iedServer, t, Hal_getTimeInMs());   // horario antes do valor
     IedServer_updateAttributeValue(iedServer, stVal, v);
-    IedServer_updateUTCTimeAttributeValue(iedServer, t, Hal_getTimeInMs());
     IedServer_unlockDataModel(iedServer);
 
     MmsValue_delete(v);

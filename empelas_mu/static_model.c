@@ -8,6 +8,7 @@
 static void initializeValues();
 
 extern DataSet iedModelds_MU01_LLN0_PhsMeas1;
+extern DataSet iedModelds_MU01_LLN0_dsEventos;
 
 
 extern DataSetEntry iedModelds_MU01_LLN0_PhsMeas1_fcda0;
@@ -192,6 +193,26 @@ DataSet iedModelds_MU01_LLN0_PhsMeas1 = {
   "LLN0$PhsMeas1",
   16,
   &iedModelds_MU01_LLN0_PhsMeas1_fcda0,
+  &iedModelds_MU01_LLN0_dsEventos
+};
+
+extern DataSetEntry iedModelds_MU01_LLN0_dsEventos_fcda0;
+
+DataSetEntry iedModelds_MU01_LLN0_dsEventos_fcda0 = {
+  "MU01",
+  false,
+  "FLTGGIO1$ST$SPCSO1", 
+  -1,
+  NULL,
+  NULL,
+  NULL
+};
+
+DataSet iedModelds_MU01_LLN0_dsEventos = {
+  "MU01",
+  "LLN0$dsEventos",
+  1,
+  &iedModelds_MU01_LLN0_dsEventos_fcda0,
   NULL
 };
 
@@ -2266,7 +2287,11 @@ DataAttribute iedModel_MU01_FLTGGIO1_SPCSO1_Oper_Check = {
     NULL,
     0};
 
+extern ReportControlBlock iedModel_MU01_LLN0_report0;
+extern ReportControlBlock iedModel_MU01_LLN0_report1;
 
+ReportControlBlock iedModel_MU01_LLN0_report0 = {&iedModel_MU01_LLN0, "brcbEventos01", "EmpElas_MU_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &iedModel_MU01_LLN0_report1};
+ReportControlBlock iedModel_MU01_LLN0_report1 = {&iedModel_MU01_LLN0, "brcbEventos02", "EmpElas_MU_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, NULL};
 
 extern SVControlBlock iedModel_MU01_LLN0_smv0;
 
@@ -2288,7 +2313,7 @@ IedModel iedModel = {
     "EmpElas_MU",
     &iedModel_MU01,
     &iedModelds_MU01_LLN0_PhsMeas1,
-    NULL,
+    &iedModel_MU01_LLN0_report0,
     NULL,
     &iedModel_MU01_LLN0_smv0,
     NULL,

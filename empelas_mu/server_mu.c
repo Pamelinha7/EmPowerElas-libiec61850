@@ -163,8 +163,9 @@ static void mudarFalta(int acao, const char* origem, bool travarModelo) {
 #endif
 
     if (travarModelo) IedServer_lockDataModel(iedServer);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_stVal, novo);
+    // Horario antes do valor: o relatorio de eventos copia os dois quando o valor muda
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_t, Hal_getTimeInMs());
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_stVal, novo);
     if (travarModelo) IedServer_unlockDataModel(iedServer);
 
     if (novo == anterior) {
@@ -375,8 +376,8 @@ int main(int argc, char** argv) {
 
     // Estado inicial: linha normal
     IedServer_lockDataModel(iedServer);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_stVal, false);
     IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_t, Hal_getTimeInMs());
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MU01_FLTGGIO1_SPCSO1_stVal, false);
     IedServer_unlockDataModel(iedServer);
 
     // Publicador de SV

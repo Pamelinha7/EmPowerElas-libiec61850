@@ -42,6 +42,25 @@
               <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="2" doName="Pos" daName="stVal" fc="ST" />
               <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="3" doName="Pos" daName="stVal" fc="ST" />
             </DataSet>
+            <!-- Conjunto de dados dos eventos (cada dado inteiro: valor, qualidade e horario) -->
+            <DataSet name="dsEventos">
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="1" doName="Pos" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="2" doName="Pos" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="3" doName="Pos" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="1" doName="Pos" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="2" doName="Pos" fc="ST" />
+              <FCDA ldInst="VAO" prefix="" lnClass="XSWI" lnInst="3" doName="Pos" fc="ST" />
+            </DataSet>
+            <!-- Relatorio de eventos: avisa o supervisorio a cada mudanca de posicao dos disjuntores e das chaves,
+                 com o horario de cada valor. Bufferizado: o que acontecer enquanto o
+                 supervisorio estiver desconectado e entregue quando ele voltar.
+                 max="2": dois clientes ao mesmo tempo (brcbEventos01 e brcbEventos02),
+                 por exemplo o Elipse e o programa testes/ver_eventos. -->
+            <ReportControl name="brcbEventos" rptID="EmpElas_CTRL_Eventos" datSet="dsEventos" confRev="1" buffered="true" bufTime="50" intgPd="0">
+              <TrgOps dchg="true" qchg="true" dupd="false" period="false" gi="true" />
+              <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
+              <RptEnabled max="2" />
+            </ReportControl>
             <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
             <!-- Bloco de controle GOOSE: publica o dsPos para o IED de controle -->
             <GSEControl name="gcbPos" datSet="dsPos" appID="EmpElasPos" confRev="1" type="GOOSE" />

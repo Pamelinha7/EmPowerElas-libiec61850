@@ -47,6 +47,28 @@
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpOpn" daName="general" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpCls" daName="general" fc="ST" />
             </DataSet>
+            <!-- Conjunto de dados dos eventos (cada dado inteiro: valor, qualidade e horario) -->
+            <DataSet name="dsEventos">
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="PTOC" lnInst="1" doName="Str" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="PTOC" lnInst="1" doName="Op" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="PTRC" lnInst="1" doName="Tr" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="2" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="1" doName="EnaOpn" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="2" doName="EnaOpn" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="3" doName="EnaOpn" fc="ST" />
+            </DataSet>
+            <!-- Relatorio de eventos: avisa o supervisorio a cada mudanca de protecao, chaves e intertravamento,
+                 com o horario de cada valor. Bufferizado: o que acontecer enquanto o
+                 supervisorio estiver desconectado e entregue quando ele voltar.
+                 max="2": dois clientes ao mesmo tempo (brcbEventos01 e brcbEventos02),
+                 por exemplo o Elipse e o programa testes/ver_eventos. -->
+            <ReportControl name="brcbEventos" rptID="EmpElas_PROT_Eventos" datSet="dsEventos" confRev="1" buffered="true" bufTime="50" intgPd="0">
+              <TrgOps dchg="true" qchg="true" dupd="false" period="false" gi="true" />
+              <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
+              <RptEnabled max="2" />
+            </ReportControl>
             <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
             <!-- Bloco de controle GOOSE: publica o dsTrip para o IED de vao -->
             <GSEControl name="gcbTrip" datSet="dsTrip" appID="EmpElasTrip" confRev="1" type="GOOSE" />

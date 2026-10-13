@@ -9,6 +9,7 @@ static void initializeValues();
 
 extern DataSet iedModelds_MEDPROT_LLN0_dsTrip;
 extern DataSet iedModelds_MEDPROT_LLN0_dsCmd;
+extern DataSet iedModelds_MEDPROT_LLN0_dsEventos;
 
 
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsTrip_fcda0;
@@ -103,6 +104,114 @@ DataSet iedModelds_MEDPROT_LLN0_dsCmd = {
   "LLN0$dsCmd",
   6,
   &iedModelds_MEDPROT_LLN0_dsCmd_fcda0,
+  &iedModelds_MEDPROT_LLN0_dsEventos
+};
+
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda0;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda1;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda2;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda3;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda4;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda5;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda6;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda7;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda8;
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda0 = {
+  "MEDPROT",
+  false,
+  "PTOC1$ST$Str", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda1
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda1 = {
+  "MEDPROT",
+  false,
+  "PTOC1$ST$Op", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda2
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda2 = {
+  "MEDPROT",
+  false,
+  "PTRC1$ST$Tr", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda3
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda3 = {
+  "MEDPROT",
+  false,
+  "CSWI1$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda4
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda4 = {
+  "MEDPROT",
+  false,
+  "CSWI2$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda5
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda5 = {
+  "MEDPROT",
+  false,
+  "CSWI3$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda6
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda6 = {
+  "MEDPROT",
+  false,
+  "CILO1$ST$EnaOpn", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda7
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda7 = {
+  "MEDPROT",
+  false,
+  "CILO2$ST$EnaOpn", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda8
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda8 = {
+  "MEDPROT",
+  false,
+  "CILO3$ST$EnaOpn", 
+  -1,
+  NULL,
+  NULL,
+  NULL
+};
+
+DataSet iedModelds_MEDPROT_LLN0_dsEventos = {
+  "MEDPROT",
+  "LLN0$dsEventos",
+  9,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda0,
   NULL
 };
 
@@ -5249,7 +5358,11 @@ DataAttribute iedModel_MEDPROT_CILO3_EnaCls_t = {
     NULL,
     0};
 
+extern ReportControlBlock iedModel_MEDPROT_LLN0_report0;
+extern ReportControlBlock iedModel_MEDPROT_LLN0_report1;
 
+ReportControlBlock iedModel_MEDPROT_LLN0_report0 = {&iedModel_MEDPROT_LLN0, "brcbEventos01", "EmpElas_PROT_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &iedModel_MEDPROT_LLN0_report1};
+ReportControlBlock iedModel_MEDPROT_LLN0_report1 = {&iedModel_MEDPROT_LLN0, "brcbEventos02", "EmpElas_PROT_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, NULL};
 
 
 extern GSEControlBlock iedModel_MEDPROT_LLN0_gse0;
@@ -5281,7 +5394,7 @@ IedModel iedModel = {
     "EmpElas_PROT",
     &iedModel_MEDPROT,
     &iedModelds_MEDPROT_LLN0_dsTrip,
-    NULL,
+    &iedModel_MEDPROT_LLN0_report0,
     &iedModel_MEDPROT_LLN0_gse0,
     NULL,
     NULL,
