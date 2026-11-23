@@ -1,6 +1,15 @@
 # ===== Binarios compilados (recriados com 'make') =====
 empelas_ctrl/empelas_ctrl
 empelas_prot/empelas_prot
+empelas_mu/empelas_mu
+empelas_prot/testes/manobra
+empelas_prot/testes/ver_eventos
+empelas_prot/testes/ver_goose
+tablet_scada/ponte
+tablet_scada/telas.json
+tablet_scada/telas.json.*
+tablet_scada/testes/capturas/
+__pycache__/
 *.o
 *.a.tmp
 *.out

@@ -1,0 +1,12 @@
+{
+  "name": "SCADA EmPowerElas",
+  "short_name": "SCADA",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#11161d",
+  "theme_color": "#11161d",
+  "icons": [
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=EmPowerElas - supervisorio web e gemeo 3D
+Wants=network-online.target
+After=network-online.target empelas-ctrl.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/tablet_scada
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/pi/tablet_scada/servidor.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

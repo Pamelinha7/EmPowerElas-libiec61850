@@ -3,7 +3,7 @@
  *
  * Assina as tres mensagens GOOSE e mostra cada mudanca de estado:
  *   Pos  - posicoes publicadas pela Pi do servo (gcbPos)
- *   Cmd  - comandos das chaves publicados pela Pi das telinhas (gcbCmd)
+ *   Cmd  - comandos das chaves e dos disjuntores publicados pela Pi das telinhas (gcbCmd)
  *   Trip - trip publicado pela Pi das telinhas (gcbTrip)
  * Nas repeticoes (o "estou vivo" a cada 1 s) so conta, sem imprimir.
  *
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
         printf("Nao consegui abrir %s. Rodou com sudo?\n", interface);
         return 1;
     }
-    printf("Escutando GOOSE em %s. Posicoes: 10 = aberto, 01 = fechado, 00 = em movimento.\n", interface);
+    printf("Escutando GOOSE em %s. Posicoes (formato da norma): 01 = aberto, 10 = fechado, 00 = em movimento.\n", interface);
     printf("A cada 5 s mostra quantas mensagens chegaram de cada uma (contando as repeticoes).\n\n");
 
     int t = 0;

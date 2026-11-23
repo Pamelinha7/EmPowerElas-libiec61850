@@ -39,7 +39,7 @@ typedef struct {
     int porta;
     IedConnection con;
     char rcbRef[128];
-    char nomes[MAX_ITENS][64];   // itens do dsEventos, na ordem (ex.: "PTOC1.Str")
+    char nomes[MAX_ITENS][64];   // itens do dsEventos, na ordem (ex.: "PIOC1.Str")
     int nItens;
     int conectado;
     int avisouFalha;             // so avisa a falha de conexao uma vez
@@ -75,7 +75,7 @@ static void parar(int s) { (void) s; rodando = 0; }
 // ------------------------------------------------------------------
 static const char* textoPos(MmsValue* v) {
     if (v == NULL || MmsValue_getType(v) != MMS_BIT_STRING) return "?";
-    switch (MmsValue_getBitStringAsInteger(v)) {   // convencao da maquete
+    switch (Dbpos_fromMmsValue(v)) {               // formato da norma (01 = aberto, 10 = fechado)
         case 0:  return "EM MOVIMENTO";
         case 1:  return "ABERTA";
         case 2:  return "FECHADA";
@@ -111,6 +111,8 @@ static void descrever(const char* nome, MmsValue* d, char* s, size_t n) {
         snprintf(s, n, "%-16s %s", nome, b ? "TRIP (GOOSE para o disjuntor)" : "trip retirado");
     else if (strstr(nome, "EnaOpn"))
         snprintf(s, n, "%-16s chave %c %s", nome, nome[4], b ? "LIBERADA" : "BLOQUEADA pelo intertravamento");
+    else if (strstr(nome, "EnaCls"))      // CILO4-6: fechamento dos disjuntores 1-3
+        snprintf(s, n, "%-16s disjuntor %c: fechar %s", nome, (char) (nome[4] - 3), b ? "LIBERADO" : "BLOQUEADO pelo intertravamento");
     else if (strstr(nome, "XCBR")) {
         const char* p = textoPos(v0);
         snprintf(s, n, "%-16s disjuntor %c %s", nome, nome[4],
@@ -118,6 +120,11 @@ static void descrever(const char* nome, MmsValue* d, char* s, size_t n) {
     }
     else if (strstr(nome, "XSWI"))
         snprintf(s, n, "%-16s chave %c %s (no patio)", nome, nome[4], textoPos(v0));
+    else if (strstr(nome, "CSWI") && nome[4] >= '4') {   // CSWI4-6: disjuntores 1-3
+        const char* p = textoPos(v0);
+        snprintf(s, n, "%-16s disjuntor %c %s (posicao recebida por GOOSE)", nome, (char) (nome[4] - 3),
+                 strcmp(p, "ABERTA") == 0 ? "ABERTO" : strcmp(p, "FECHADA") == 0 ? "FECHADO" : p);
+    }
     else if (strstr(nome, "CSWI"))
         snprintf(s, n, "%-16s chave %c %s (posicao recebida por GOOSE)", nome, nome[4], textoPos(v0));
     else

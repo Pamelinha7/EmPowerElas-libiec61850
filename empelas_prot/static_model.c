@@ -38,6 +38,12 @@ extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda2;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda3;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda4;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda5;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda6;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda7;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda8;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda9;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda10;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda11;
 
 DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda0 = {
   "MEDPROT",
@@ -96,13 +102,73 @@ DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda5 = {
   -1,
   NULL,
   NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda6
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda6 = {
+  "MEDPROT",
+  false,
+  "CSWI4$ST$OpOpn$general", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda7
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda7 = {
+  "MEDPROT",
+  false,
+  "CSWI4$ST$OpCls$general", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda8
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda8 = {
+  "MEDPROT",
+  false,
+  "CSWI5$ST$OpOpn$general", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda9
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda9 = {
+  "MEDPROT",
+  false,
+  "CSWI5$ST$OpCls$general", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda10
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda10 = {
+  "MEDPROT",
+  false,
+  "CSWI6$ST$OpOpn$general", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsCmd_fcda11
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsCmd_fcda11 = {
+  "MEDPROT",
+  false,
+  "CSWI6$ST$OpCls$general", 
+  -1,
+  NULL,
+  NULL,
   NULL
 };
 
 DataSet iedModelds_MEDPROT_LLN0_dsCmd = {
   "MEDPROT",
   "LLN0$dsCmd",
-  6,
+  12,
   &iedModelds_MEDPROT_LLN0_dsCmd_fcda0,
   &iedModelds_MEDPROT_LLN0_dsEventos
 };
@@ -116,11 +182,17 @@ extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda5;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda6;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda7;
 extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda8;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda9;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda10;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda11;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda12;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda13;
+extern DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda14;
 
 DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda0 = {
   "MEDPROT",
   false,
-  "PTOC1$ST$Str", 
+  "PIOC1$ST$Str", 
   -1,
   NULL,
   NULL,
@@ -130,7 +202,7 @@ DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda0 = {
 DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda1 = {
   "MEDPROT",
   false,
-  "PTOC1$ST$Op", 
+  "PIOC1$ST$Op", 
   -1,
   NULL,
   NULL,
@@ -204,13 +276,73 @@ DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda8 = {
   -1,
   NULL,
   NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda9
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda9 = {
+  "MEDPROT",
+  false,
+  "CSWI4$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda10
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda10 = {
+  "MEDPROT",
+  false,
+  "CSWI5$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda11
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda11 = {
+  "MEDPROT",
+  false,
+  "CSWI6$ST$Pos", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda12
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda12 = {
+  "MEDPROT",
+  false,
+  "CILO4$ST$EnaCls", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda13
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda13 = {
+  "MEDPROT",
+  false,
+  "CILO5$ST$EnaCls", 
+  -1,
+  NULL,
+  NULL,
+  &iedModelds_MEDPROT_LLN0_dsEventos_fcda14
+};
+
+DataSetEntry iedModelds_MEDPROT_LLN0_dsEventos_fcda14 = {
+  "MEDPROT",
+  false,
+  "CILO6$ST$EnaCls", 
+  -1,
+  NULL,
+  NULL,
   NULL
 };
 
 DataSet iedModelds_MEDPROT_LLN0_dsEventos = {
   "MEDPROT",
   "LLN0$dsEventos",
-  9,
+  15,
   &iedModelds_MEDPROT_LLN0_dsEventos_fcda0,
   NULL
 };
@@ -1388,7 +1520,7 @@ LogicalNode iedModel_MEDPROT_MMXU1 = {
     LogicalNodeModelType,
     "MMXU1",
     (ModelNode*) &iedModel_MEDPROT,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1,
     (ModelNode*) &iedModel_MEDPROT_MMXU1_NamPlt,
 };
 
@@ -2486,29 +2618,29 @@ DataAttribute iedModel_MEDPROT_MMXU1_PPV_phsCA_t = {
     NULL,
     0};
 
-LogicalNode iedModel_MEDPROT_PTOC1 = {
+LogicalNode iedModel_MEDPROT_PIOC1 = {
     LogicalNodeModelType,
-    "PTOC1",
+    "PIOC1",
     (ModelNode*) &iedModel_MEDPROT,
     (ModelNode*) &iedModel_MEDPROT_PTRC1,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh,
 };
 
-DataObject iedModel_MEDPROT_PTOC1_Beh = {
+DataObject iedModel_MEDPROT_PIOC1_Beh = {
     DataObjectModelType,
     "Beh",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh_stVal,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh_stVal,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_PTOC1_Beh_stVal = {
+DataAttribute iedModel_MEDPROT_PIOC1_Beh_stVal = {
     DataAttributeModelType,
     "stVal",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh_q,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh_q,
     NULL,
     0,
     -1,
@@ -2518,11 +2650,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Beh_stVal = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Beh_q = {
+DataAttribute iedModel_MEDPROT_PIOC1_Beh_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh_t,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh_t,
     NULL,
     0,
     -1,
@@ -2532,10 +2664,10 @@ DataAttribute iedModel_MEDPROT_PTOC1_Beh_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Beh_t = {
+DataAttribute iedModel_MEDPROT_PIOC1_Beh_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Beh,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Beh,
     NULL,
     NULL,
     0,
@@ -2546,21 +2678,21 @@ DataAttribute iedModel_MEDPROT_PTOC1_Beh_t = {
     NULL,
     0};
 
-DataObject iedModel_MEDPROT_PTOC1_Health = {
+DataObject iedModel_MEDPROT_PIOC1_Health = {
     DataObjectModelType,
     "Health",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health_stVal,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health_stVal,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_PTOC1_Health_stVal = {
+DataAttribute iedModel_MEDPROT_PIOC1_Health_stVal = {
     DataAttributeModelType,
     "stVal",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health_q,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health_q,
     NULL,
     0,
     -1,
@@ -2570,11 +2702,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Health_stVal = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Health_q = {
+DataAttribute iedModel_MEDPROT_PIOC1_Health_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health_t,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health_t,
     NULL,
     0,
     -1,
@@ -2584,10 +2716,10 @@ DataAttribute iedModel_MEDPROT_PTOC1_Health_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Health_t = {
+DataAttribute iedModel_MEDPROT_PIOC1_Health_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Health,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Health,
     NULL,
     NULL,
     0,
@@ -2598,21 +2730,21 @@ DataAttribute iedModel_MEDPROT_PTOC1_Health_t = {
     NULL,
     0};
 
-DataObject iedModel_MEDPROT_PTOC1_Str = {
+DataObject iedModel_MEDPROT_PIOC1_Str = {
     DataObjectModelType,
     "Str",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_general,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_general,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_general = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_general = {
     DataAttributeModelType,
     "general",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirGeneral,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_dirGeneral,
     NULL,
     0,
     -1,
@@ -2622,11 +2754,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_general = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_dirGeneral = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_dirGeneral = {
     DataAttributeModelType,
     "dirGeneral",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsA,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_phsA,
     NULL,
     0,
     -1,
@@ -2636,11 +2768,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_dirGeneral = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_phsA = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_phsA = {
     DataAttributeModelType,
     "phsA",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsA,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_dirPhsA,
     NULL,
     0,
     -1,
@@ -2650,11 +2782,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_phsA = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsA = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_dirPhsA = {
     DataAttributeModelType,
     "dirPhsA",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsB,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_phsB,
     NULL,
     0,
     -1,
@@ -2664,11 +2796,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsA = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_phsB = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_phsB = {
     DataAttributeModelType,
     "phsB",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsB,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_dirPhsB,
     NULL,
     0,
     -1,
@@ -2678,11 +2810,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_phsB = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsB = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_dirPhsB = {
     DataAttributeModelType,
     "dirPhsB",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_phsC,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_phsC,
     NULL,
     0,
     -1,
@@ -2692,11 +2824,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsB = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_phsC = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_phsC = {
     DataAttributeModelType,
     "phsC",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_dirPhsC,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_dirPhsC,
     NULL,
     0,
     -1,
@@ -2706,11 +2838,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_phsC = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsC = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_dirPhsC = {
     DataAttributeModelType,
     "dirPhsC",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_q,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_q,
     NULL,
     0,
     -1,
@@ -2720,11 +2852,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_dirPhsC = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_q = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str_t,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str_t,
     NULL,
     0,
     -1,
@@ -2734,10 +2866,10 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Str_t = {
+DataAttribute iedModel_MEDPROT_PIOC1_Str_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Str,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Str,
     NULL,
     NULL,
     0,
@@ -2748,21 +2880,21 @@ DataAttribute iedModel_MEDPROT_PTOC1_Str_t = {
     NULL,
     0};
 
-DataObject iedModel_MEDPROT_PTOC1_Op = {
+DataObject iedModel_MEDPROT_PIOC1_Op = {
     DataObjectModelType,
     "Op",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1,
     NULL,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_general,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_general,
     0,
     -1
 };
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_general = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_general = {
     DataAttributeModelType,
     "general",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsA,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_phsA,
     NULL,
     0,
     -1,
@@ -2772,11 +2904,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_general = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_phsA = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_phsA = {
     DataAttributeModelType,
     "phsA",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsB,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_phsB,
     NULL,
     0,
     -1,
@@ -2786,11 +2918,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_phsA = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_phsB = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_phsB = {
     DataAttributeModelType,
     "phsB",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_phsC,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_phsC,
     NULL,
     0,
     -1,
@@ -2800,11 +2932,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_phsB = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_phsC = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_phsC = {
     DataAttributeModelType,
     "phsC",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_q,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_q,
     NULL,
     0,
     -1,
@@ -2814,11 +2946,11 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_phsC = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_q = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_q = {
     DataAttributeModelType,
     "q",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op_t,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op_t,
     NULL,
     0,
     -1,
@@ -2828,10 +2960,10 @@ DataAttribute iedModel_MEDPROT_PTOC1_Op_q = {
     NULL,
     0};
 
-DataAttribute iedModel_MEDPROT_PTOC1_Op_t = {
+DataAttribute iedModel_MEDPROT_PIOC1_Op_t = {
     DataAttributeModelType,
     "t",
-    (ModelNode*) &iedModel_MEDPROT_PTOC1_Op,
+    (ModelNode*) &iedModel_MEDPROT_PIOC1_Op,
     NULL,
     NULL,
     0,
@@ -3287,7 +3419,7 @@ DataAttribute iedModel_MEDPROT_CSWI1_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -4071,7 +4203,7 @@ DataAttribute iedModel_MEDPROT_CSWI2_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -4855,7 +4987,7 @@ DataAttribute iedModel_MEDPROT_CSWI3_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -5066,7 +5198,7 @@ LogicalNode iedModel_MEDPROT_CILO3 = {
     LogicalNodeModelType,
     "CILO3",
     (ModelNode*) &iedModel_MEDPROT,
-    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
     (ModelNode*) &iedModel_MEDPROT_CILO3_Beh,
 };
 
@@ -5358,11 +5490,2363 @@ DataAttribute iedModel_MEDPROT_CILO3_EnaCls_t = {
     NULL,
     0};
 
+LogicalNode iedModel_MEDPROT_CSWI4 = {
+    LogicalNodeModelType,
+    "CSWI4",
+    (ModelNode*) &iedModel_MEDPROT,
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh,
+};
+
+DataObject iedModel_MEDPROT_CSWI4_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI4_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI4_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI4_Pos = {
+    DataObjectModelType,
+    "Pos",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_CODEDENUM,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_ctlModel,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_ctlModel = {
+    DataAttributeModelType,
+    "ctlModel",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CF,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper = {
+    DataAttributeModelType,
+    "Oper",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_ctlVal,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_ctlVal = {
+    DataAttributeModelType,
+    "ctlVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_origin,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_origin = {
+    DataAttributeModelType,
+    "origin",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_ctlNum,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_origin_orCat,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_origin_orCat = {
+    DataAttributeModelType,
+    "orCat",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_origin,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_origin_orIdent,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_origin_orIdent = {
+    DataAttributeModelType,
+    "orIdent",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_origin,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_OCTET_STRING_64,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_ctlNum = {
+    DataAttributeModelType,
+    "ctlNum",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_T,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_INT8U,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_T = {
+    DataAttributeModelType,
+    "T",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_Test,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_Test = {
+    DataAttributeModelType,
+    "Test",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper_Check,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_Pos_Oper_Check = {
+    DataAttributeModelType,
+    "Check",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_Pos_Oper,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CHECK,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI4_OpOpn = {
+    DataObjectModelType,
+    "OpOpn",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpOpn_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI4_OpCls = {
+    DataObjectModelType,
+    "OpCls",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpCls_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI4_OpCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI4_OpCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+LogicalNode iedModel_MEDPROT_CILO4 = {
+    LogicalNodeModelType,
+    "CILO4",
+    (ModelNode*) &iedModel_MEDPROT,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh,
+};
+
+DataObject iedModel_MEDPROT_CILO4_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO4_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO4_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO4_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO4_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO4_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO4_EnaOpn = {
+    DataObjectModelType,
+    "EnaOpn",
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaOpn_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO4_EnaCls = {
+    DataObjectModelType,
+    "EnaCls",
+    (ModelNode*) &iedModel_MEDPROT_CILO4,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaCls_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO4_EnaCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO4_EnaCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+LogicalNode iedModel_MEDPROT_CSWI5 = {
+    LogicalNodeModelType,
+    "CSWI5",
+    (ModelNode*) &iedModel_MEDPROT,
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh,
+};
+
+DataObject iedModel_MEDPROT_CSWI5_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI5_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI5_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI5_Pos = {
+    DataObjectModelType,
+    "Pos",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_CODEDENUM,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_ctlModel,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_ctlModel = {
+    DataAttributeModelType,
+    "ctlModel",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CF,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper = {
+    DataAttributeModelType,
+    "Oper",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_ctlVal,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_ctlVal = {
+    DataAttributeModelType,
+    "ctlVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_origin,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_origin = {
+    DataAttributeModelType,
+    "origin",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_ctlNum,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_origin_orCat,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_origin_orCat = {
+    DataAttributeModelType,
+    "orCat",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_origin,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_origin_orIdent,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_origin_orIdent = {
+    DataAttributeModelType,
+    "orIdent",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_origin,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_OCTET_STRING_64,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_ctlNum = {
+    DataAttributeModelType,
+    "ctlNum",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_T,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_INT8U,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_T = {
+    DataAttributeModelType,
+    "T",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_Test,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_Test = {
+    DataAttributeModelType,
+    "Test",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper_Check,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_Pos_Oper_Check = {
+    DataAttributeModelType,
+    "Check",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_Pos_Oper,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CHECK,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI5_OpOpn = {
+    DataObjectModelType,
+    "OpOpn",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpOpn_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI5_OpCls = {
+    DataObjectModelType,
+    "OpCls",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpCls_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI5_OpCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI5_OpCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+LogicalNode iedModel_MEDPROT_CILO5 = {
+    LogicalNodeModelType,
+    "CILO5",
+    (ModelNode*) &iedModel_MEDPROT,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh,
+};
+
+DataObject iedModel_MEDPROT_CILO5_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO5_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO5_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO5_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO5_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO5_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO5_EnaOpn = {
+    DataObjectModelType,
+    "EnaOpn",
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaOpn_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO5_EnaCls = {
+    DataObjectModelType,
+    "EnaCls",
+    (ModelNode*) &iedModel_MEDPROT_CILO5,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaCls_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO5_EnaCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO5_EnaCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+LogicalNode iedModel_MEDPROT_CSWI6 = {
+    LogicalNodeModelType,
+    "CSWI6",
+    (ModelNode*) &iedModel_MEDPROT,
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh,
+};
+
+DataObject iedModel_MEDPROT_CSWI6_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI6_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI6_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI6_Pos = {
+    DataObjectModelType,
+    "Pos",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_CODEDENUM,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_ctlModel,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_ctlModel = {
+    DataAttributeModelType,
+    "ctlModel",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CF,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper = {
+    DataAttributeModelType,
+    "Oper",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_ctlVal,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_ctlVal = {
+    DataAttributeModelType,
+    "ctlVal",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_origin,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_origin = {
+    DataAttributeModelType,
+    "origin",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_ctlNum,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_origin_orCat,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CONSTRUCTED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_origin_orCat = {
+    DataAttributeModelType,
+    "orCat",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_origin,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_origin_orIdent,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_ENUMERATED,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_origin_orIdent = {
+    DataAttributeModelType,
+    "orIdent",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_origin,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_OCTET_STRING_64,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_ctlNum = {
+    DataAttributeModelType,
+    "ctlNum",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_T,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_INT8U,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_T = {
+    DataAttributeModelType,
+    "T",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_Test,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_Test = {
+    DataAttributeModelType,
+    "Test",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper_Check,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_BOOLEAN,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_Pos_Oper_Check = {
+    DataAttributeModelType,
+    "Check",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_Pos_Oper,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_CO,
+    IEC61850_CHECK,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI6_OpOpn = {
+    DataObjectModelType,
+    "OpOpn",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpOpn_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CSWI6_OpCls = {
+    DataObjectModelType,
+    "OpCls",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls_general,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpCls_general = {
+    DataAttributeModelType,
+    "general",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls,
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CSWI6_OpCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CSWI6_OpCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+LogicalNode iedModel_MEDPROT_CILO6 = {
+    LogicalNodeModelType,
+    "CILO6",
+    (ModelNode*) &iedModel_MEDPROT,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh,
+};
+
+DataObject iedModel_MEDPROT_CILO6_Beh = {
+    DataObjectModelType,
+    "Beh",
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO6_Beh_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_Beh_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_Beh_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Beh,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO6_Health = {
+    DataObjectModelType,
+    "Health",
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO6_Health_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_ENUMERATED,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_Health_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_Health_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_Health,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO6_NamPlt = {
+    DataObjectModelType,
+    "NamPlt",
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt_vendor,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO6_NamPlt_vendor = {
+    DataAttributeModelType,
+    "vendor",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt_swRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_NamPlt_swRev = {
+    DataAttributeModelType,
+    "swRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt_d,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_NamPlt_d = {
+    DataAttributeModelType,
+    "d",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt_configRev,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_NamPlt_configRev = {
+    DataAttributeModelType,
+    "configRev",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt_lnNs,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_DC,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_NamPlt_lnNs = {
+    DataAttributeModelType,
+    "lnNs",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_NamPlt,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_EX,
+    IEC61850_VISIBLE_STRING_255,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO6_EnaOpn = {
+    DataObjectModelType,
+    "EnaOpn",
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaOpn_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaOpn_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaOpn_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaOpn,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
+DataObject iedModel_MEDPROT_CILO6_EnaCls = {
+    DataObjectModelType,
+    "EnaCls",
+    (ModelNode*) &iedModel_MEDPROT_CILO6,
+    NULL,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls_stVal,
+    0,
+    -1
+};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaCls_stVal = {
+    DataAttributeModelType,
+    "stVal",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls_q,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_BOOLEAN,
+    0 + TRG_OPT_DATA_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaCls_q = {
+    DataAttributeModelType,
+    "q",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls,
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls_t,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_QUALITY,
+    0 + TRG_OPT_QUALITY_CHANGED,
+    NULL,
+    0};
+
+DataAttribute iedModel_MEDPROT_CILO6_EnaCls_t = {
+    DataAttributeModelType,
+    "t",
+    (ModelNode*) &iedModel_MEDPROT_CILO6_EnaCls,
+    NULL,
+    NULL,
+    0,
+    -1,
+    IEC61850_FC_ST,
+    IEC61850_TIMESTAMP,
+    0,
+    NULL,
+    0};
+
 extern ReportControlBlock iedModel_MEDPROT_LLN0_report0;
 extern ReportControlBlock iedModel_MEDPROT_LLN0_report1;
 
-ReportControlBlock iedModel_MEDPROT_LLN0_report0 = {&iedModel_MEDPROT_LLN0, "brcbEventos01", "EmpElas_PROT_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &iedModel_MEDPROT_LLN0_report1};
-ReportControlBlock iedModel_MEDPROT_LLN0_report1 = {&iedModel_MEDPROT_LLN0, "brcbEventos02", "EmpElas_PROT_Eventos", true, "dsEventos", 1, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, NULL};
+ReportControlBlock iedModel_MEDPROT_LLN0_report0 = {&iedModel_MEDPROT_LLN0, "brcbEventos01", "EmpElas_PROT_Eventos", true, "dsEventos", 2, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, &iedModel_MEDPROT_LLN0_report1};
+ReportControlBlock iedModel_MEDPROT_LLN0_report1 = {&iedModel_MEDPROT_LLN0, "brcbEventos02", "EmpElas_PROT_Eventos", true, "dsEventos", 2, 19, 255, 50, 0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, NULL};
 
 
 extern GSEControlBlock iedModel_MEDPROT_LLN0_gse0;
@@ -5384,7 +7868,7 @@ static PhyComAddress iedModel_MEDPROT_LLN0_gse1_address = {
   {0x1, 0xc, 0xcd, 0x1, 0x0, 0x3}
 };
 
-GSEControlBlock iedModel_MEDPROT_LLN0_gse1 = {&iedModel_MEDPROT_LLN0, "gcbCmd", "EmpElasCmd", "dsCmd", 1, false, &iedModel_MEDPROT_LLN0_gse1_address, 10, 1000, NULL};
+GSEControlBlock iedModel_MEDPROT_LLN0_gse1 = {&iedModel_MEDPROT_LLN0, "gcbCmd", "EmpElasCmd", "dsCmd", 2, false, &iedModel_MEDPROT_LLN0_gse1_address, 10, 1000, NULL};
 
 
 
@@ -5448,4 +7932,46 @@ iedModel_MEDPROT_CILO3_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
 iedModel_MEDPROT_CILO3_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
 
 iedModel_MEDPROT_CILO3_NamPlt_d.mmsValue = MmsValue_newVisibleString("Intertravamento da chave 3: so manobra com o disjuntor 3 aberto");
+
+iedModel_MEDPROT_CSWI4_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI4_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI4_NamPlt_d.mmsValue = MmsValue_newVisibleString("Comando do disjuntor 1: libera pelo CILO4 e envia por GOOSE (gcbCmd)");
+
+iedModel_MEDPROT_CSWI4_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO4_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO4_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO4_NamPlt_d.mmsValue = MmsValue_newVisibleString("Intertravamento do disjuntor 1: abre sempre; fecha com a chave 1 parada e sem trip");
+
+iedModel_MEDPROT_CSWI5_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI5_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI5_NamPlt_d.mmsValue = MmsValue_newVisibleString("Comando do disjuntor 2: libera pelo CILO5 e envia por GOOSE (gcbCmd)");
+
+iedModel_MEDPROT_CSWI5_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO5_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO5_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO5_NamPlt_d.mmsValue = MmsValue_newVisibleString("Intertravamento do disjuntor 2: abre sempre; fecha com a chave 2 parada");
+
+iedModel_MEDPROT_CSWI6_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI6_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CSWI6_NamPlt_d.mmsValue = MmsValue_newVisibleString("Comando do disjuntor 3: libera pelo CILO6 e envia por GOOSE (gcbCmd)");
+
+iedModel_MEDPROT_CSWI6_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO6_Beh_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO6_Health_stVal.mmsValue = MmsValue_newIntegerFromInt32(1);
+
+iedModel_MEDPROT_CILO6_NamPlt_d.mmsValue = MmsValue_newVisibleString("Intertravamento do disjuntor 3: abre sempre; fecha com a chave 3 parada");
 }

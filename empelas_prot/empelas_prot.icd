@@ -5,18 +5,23 @@
 
   Recebe as amostras de corrente e tensao da merging unit (EmpElas_MU)
   por Sampled Values, calcula os valores eficazes das tres fases, roda a
-  protecao de sobrecorrente e, quando ela atua, publica o trip por GOOSE
-  para o IED de controle de vao (EmpElas_CTRL).
+  protecao de sobrecorrente instantanea (PIOC, funcao ANSI 50) e, quando
+  ela atua, publica o trip por GOOSE para a Pi do servo (EmpElas_CTRL).
 
   Nao ha mais botao de falta aqui: a falta acontece na "linha", que e a
   merging unit. Este IED so mede e decide, como um rele real.
 
-  Tambem e o IED de controle das chaves seccionadoras:
-    - CSWI1-3 recebem o comando do operador (supervisorio, MMS);
-    - CILO1-3 fazem o intertravamento: a chave N so abre ou fecha com o
-      disjuntor N aberto;
+  Tambem e o IED de controle do vao (chaves e disjuntores):
+    - CSWI1-3 (chaves 1-3) e CSWI4-6 (disjuntores 1-3) recebem o comando
+      do operador (supervisorio, MMS). Comando no formato da norma:
+      ctlVal booleano, true = fechar, false = abrir;
+    - CILO1-3: a chave N so abre ou fecha com o disjuntor N aberto;
+    - CILO4-6: o disjuntor N abre sempre; so fecha se a chave N nao estiver
+      em movimento (e o DJ1 nao fecha com o trip ativo);
     - o comando liberado sai por GOOSE (gcbCmd) para a Pi do servo
       (EmpElas_CTRL), que publica de volta a posicao de tudo (gcbPos).
+    - O trip nao passa pelo CSWI: vai direto do PTRC para o XCBR (gcbTrip).
+  Posicoes (Dbpos) no formato da norma: 01 = aberto (off), 10 = fechado (on).
 -->
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
   <Header id="EmpElas" nameStructure="IEDName" />
@@ -37,8 +42,9 @@
             <DataSet name="dsTrip">
               <FCDA ldInst="MEDPROT" prefix="" lnClass="PTRC" lnInst="1" doName="Tr" daName="general" fc="ST" />
             </DataSet>
-            <!-- Conjunto de dados publicado no GOOSE de comandos das chaves.
-                 A Pi do servo le nesta ordem: abrir 1, fechar 1, abrir 2, fechar 2, abrir 3, fechar 3. -->
+            <!-- Conjunto de dados publicado no GOOSE de comandos (chaves e disjuntores).
+                 A Pi do servo le nesta ordem: chave 1 abrir/fechar, chave 2, chave 3,
+                 depois disjuntor 1 abrir/fechar, disjuntor 2, disjuntor 3 (12 valores). -->
             <DataSet name="dsCmd">
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="OpOpn" daName="general" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="OpCls" daName="general" fc="ST" />
@@ -46,11 +52,17 @@
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="2" doName="OpCls" daName="general" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpOpn" daName="general" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="3" doName="OpCls" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="4" doName="OpOpn" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="4" doName="OpCls" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="5" doName="OpOpn" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="5" doName="OpCls" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="6" doName="OpOpn" daName="general" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="6" doName="OpCls" daName="general" fc="ST" />
             </DataSet>
             <!-- Conjunto de dados dos eventos (cada dado inteiro: valor, qualidade e horario) -->
             <DataSet name="dsEventos">
-              <FCDA ldInst="MEDPROT" prefix="" lnClass="PTOC" lnInst="1" doName="Str" fc="ST" />
-              <FCDA ldInst="MEDPROT" prefix="" lnClass="PTOC" lnInst="1" doName="Op" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="PIOC" lnInst="1" doName="Str" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="PIOC" lnInst="1" doName="Op" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="PTRC" lnInst="1" doName="Tr" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="1" doName="Pos" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="2" doName="Pos" fc="ST" />
@@ -58,13 +70,19 @@
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="1" doName="EnaOpn" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="2" doName="EnaOpn" fc="ST" />
               <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="3" doName="EnaOpn" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="4" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="5" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="6" doName="Pos" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="4" doName="EnaCls" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="5" doName="EnaCls" fc="ST" />
+              <FCDA ldInst="MEDPROT" prefix="" lnClass="CILO" lnInst="6" doName="EnaCls" fc="ST" />
             </DataSet>
             <!-- Relatorio de eventos: avisa o supervisorio a cada mudanca de protecao, chaves e intertravamento,
                  com o horario de cada valor. Bufferizado: o que acontecer enquanto o
                  supervisorio estiver desconectado e entregue quando ele voltar.
                  max="2": dois clientes ao mesmo tempo (brcbEventos01 e brcbEventos02),
                  por exemplo o Elipse e o programa testes/ver_eventos. -->
-            <ReportControl name="brcbEventos" rptID="EmpElas_PROT_Eventos" datSet="dsEventos" confRev="1" buffered="true" bufTime="50" intgPd="0">
+            <ReportControl name="brcbEventos" rptID="EmpElas_PROT_Eventos" datSet="dsEventos" confRev="2" buffered="true" bufTime="50" intgPd="0">
               <TrgOps dchg="true" qchg="true" dupd="false" period="false" gi="true" />
               <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
               <RptEnabled max="2" />
@@ -72,8 +90,8 @@
             <DOI name="Mod" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="NamPlt" /> <DOI name="Diag" /> <DOI name="LEDRs" />
             <!-- Bloco de controle GOOSE: publica o dsTrip para o IED de vao -->
             <GSEControl name="gcbTrip" datSet="dsTrip" appID="EmpElasTrip" confRev="1" type="GOOSE" />
-            <!-- Bloco de controle GOOSE: publica o dsCmd (comandos das chaves) para a Pi do servo -->
-            <GSEControl name="gcbCmd" datSet="dsCmd" appID="EmpElasCmd" confRev="1" type="GOOSE" />
+            <!-- Bloco de controle GOOSE: publica o dsCmd (comandos das chaves e dos disjuntores) para a Pi do servo -->
+            <GSEControl name="gcbCmd" datSet="dsCmd" appID="EmpElasCmd" confRev="2" type="GOOSE" />
           </LN0>
           <LN lnClass="LPHD" lnType="LPHD1_Typ" inst="1" prefix="">
             <DOI name="NamPlt" /> <DOI name="PhyNam" /> <DOI name="PhyHealth" /> <DOI name="OutOv" /> <DOI name="Proxy" /> <DOI name="OpTmh" /> <DOI name="Sim" />
@@ -105,8 +123,9 @@
             </Inputs>
           </LN>
 
-          <!-- Protecao de sobrecorrente de fase. Str e Op indicam tambem a fase. -->
-          <LN lnClass="PTOC" lnType="PTOC1_Typ" inst="1" prefix="">
+          <!-- Protecao de sobrecorrente de fase INSTANTANEA (sem atraso): PIOC, funcao ANSI 50.
+               (PTOC seria a temporizada, funcao 51.) Str e Op indicam tambem a fase. -->
+          <LN lnClass="PIOC" lnType="PIOC1_Typ" inst="1" prefix="">
             <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Str" /> <DOI name="Op" />
           </LN>
 
@@ -183,6 +202,72 @@
               <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XSWI" lnInst="3" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
             </Inputs>
           </LN>
+          <!-- Disjuntor 1: comando (CSWI4) e intertravamento (CILO4) -->
+          <LN lnClass="CSWI" lnType="CSWI1_Typ" inst="4" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Comando do disjuntor 1: libera pelo CILO4 e envia por GOOSE (gcbCmd)</Val></DAI></DOI>
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <DOI name="OpOpn" /> <DOI name="OpCls" />
+            <!-- Posicao real do disjuntor: vem da Pi do servo, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="1" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
+          <LN lnClass="CILO" lnType="CILO1_Typ" inst="4" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Intertravamento do disjuntor 1: abre sempre; fecha com a chave 1 parada e sem trip</Val></DAI></DOI>
+            <DOI name="EnaOpn" /> <DOI name="EnaCls" />
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="1" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XSWI" lnInst="1" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
+          <!-- Disjuntor 2: comando (CSWI5) e intertravamento (CILO5) -->
+          <LN lnClass="CSWI" lnType="CSWI1_Typ" inst="5" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Comando do disjuntor 2: libera pelo CILO5 e envia por GOOSE (gcbCmd)</Val></DAI></DOI>
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <DOI name="OpOpn" /> <DOI name="OpCls" />
+            <!-- Posicao real do disjuntor: vem da Pi do servo, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="2" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
+          <LN lnClass="CILO" lnType="CILO1_Typ" inst="5" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Intertravamento do disjuntor 2: abre sempre; fecha com a chave 2 parada</Val></DAI></DOI>
+            <DOI name="EnaOpn" /> <DOI name="EnaCls" />
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="2" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XSWI" lnInst="2" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
+          <!-- Disjuntor 3: comando (CSWI6) e intertravamento (CILO6) -->
+          <LN lnClass="CSWI" lnType="CSWI1_Typ" inst="6" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Comando do disjuntor 3: libera pelo CILO6 e envia por GOOSE (gcbCmd)</Val></DAI></DOI>
+            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <DOI name="OpOpn" /> <DOI name="OpCls" />
+            <!-- Posicao real do disjuntor: vem da Pi do servo, por GOOSE -->
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="3" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
+          <LN lnClass="CILO" lnType="CILO1_Typ" inst="6" prefix="">
+            <DOI name="Beh"><DAI name="stVal"><Val>on</Val></DAI></DOI>
+            <DOI name="Health"><DAI name="stVal"><Val>ok</Val></DAI></DOI>
+            <DOI name="NamPlt"><DAI name="d"><Val>Intertravamento do disjuntor 3: abre sempre; fecha com a chave 3 parada</Val></DAI></DOI>
+            <DOI name="EnaOpn" /> <DOI name="EnaCls" />
+            <Inputs>
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XCBR" lnInst="3" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+              <ExtRef iedName="EmpElas_CTRL" ldInst="VAO" prefix="" lnClass="XSWI" lnInst="3" doName="Pos" daName="stVal" serviceType="GOOSE" srcLDInst="VAO" srcLNClass="LLN0" srcCBName="gcbPos" />
+            </Inputs>
+          </LN>
         </LDevice>
       </Server>
     </AccessPoint>
@@ -194,7 +279,7 @@
     <LNodeType id="LTIM1_Typ" lnClass="LTIM"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="TmDT" type="SPS_Generic"/></LNodeType>
     <LNodeType id="LTMS1_Typ" lnClass="LTMS"><DO name="TmSrc" type="ENS_Generic"/><DO name="TmSrcTyp" type="ENS_Generic"/><DO name="Beh" type="ENS_Beh"/></LNodeType>
     <LNodeType id="MMXU1_Typ" lnClass="MMXU"><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="A" type="WYE_1"/><DO name="PhV" type="WYE_1"/><DO name="PPV" type="DEL_1"/></LNodeType>
-    <LNodeType id="PTOC1_Typ" lnClass="PTOC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Str" type="ACD_Fases"/><DO name="Op" type="ACT_Fases"/></LNodeType>
+    <LNodeType id="PIOC1_Typ" lnClass="PIOC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Str" type="ACD_Fases"/><DO name="Op" type="ACT_Fases"/></LNodeType>
     <LNodeType id="PTRC1_Typ" lnClass="PTRC"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="Tr" type="ACT_Generic"/></LNodeType>
     <LNodeType id="CSWI1_Typ" lnClass="CSWI"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="Pos" type="DPC_Generic"/><DO name="OpOpn" type="ACT_Generic"/><DO name="OpCls" type="ACT_Generic"/></LNodeType>
     <LNodeType id="CILO1_Typ" lnClass="CILO"><DO name="Beh" type="ENS_Beh"/><DO name="Health" type="ENS_Health"/><DO name="NamPlt" type="LPL_NamPlt"/><DO name="EnaOpn" type="SPS_Simples"/><DO name="EnaCls" type="SPS_Simples"/></LNodeType>
@@ -205,8 +290,8 @@
     <DOType id="ENS_Generic" cdc="ENS"><DA name="stVal" bType="INT8U" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
     <DOType id="SPS_Generic" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /></DOType>
     <DOType id="SPS_Simples" cdc="SPS"><DA name="stVal" bType="BOOLEAN" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
-    <!-- Posicao com comando: mesmo formato das chaves e disjuntores da Pi do servo,
-         para os botoes do Elipse funcionarem igual (1 = abrir, 2 = fechar) -->
+    <!-- Posicao com comando (DPC), no formato da norma: stVal Dbpos (01 = aberto,
+         10 = fechado) e ctlVal booleano (true = fechar, false = abrir) -->
     <DOType id="DPC_Generic" cdc="DPC"><DA name="stVal" bType="Dbpos" type="Dbpos" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /><DA name="ctlModel" type="CtlModels" bType="Enum" fc="CF" /><DA name="Oper" type="DPCOperate_1" bType="Struct" fc="CO" /></DOType>
     <DOType id="INS_Generic" cdc="INS"><DA name="stVal" bType="INT32" fc="ST" dchg="true" /><DA name="q" bType="Quality" fc="ST" qchg="true" /><DA name="t" bType="Timestamp" fc="ST" /></DOType>
 
@@ -224,7 +309,7 @@
     <DOType id="DPL_Generic" cdc="DPL"><DA name="vendor" bType="VisString255" fc="DC" /><DA name="model" bType="VisString255" fc="DC" /></DOType>
 
     <DAType id="Originator_1"><BDA name="orCat" type="OrCat" bType="Enum" /><BDA name="orIdent" bType="Octet64" /></DAType>
-    <DAType id="DPCOperate_1"><BDA name="ctlVal" bType="Dbpos" type="Dbpos" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+    <DAType id="DPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
     <DAType id="Vector_1"><BDA name="mag" type="AnalogueValue_1" bType="Struct" /></DAType>
     <DAType id="AnalogueValue_1"><BDA name="f" bType="FLOAT32" /></DAType>
 

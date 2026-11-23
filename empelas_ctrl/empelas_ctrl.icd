@@ -9,13 +9,16 @@
   Conversa com o IED de controle (EmpElas_PROT, Pi das telinhas) so por GOOSE:
     - publica gcbPos: a posicao dos 3 disjuntores e das 3 chaves;
     - assina gcbTrip: o trip da protecao, que abre o disjuntor 1;
-    - assina gcbCmd: os comandos de abrir e fechar as chaves (CSWI.OpOpn e
-      CSWI.OpCls), ja liberados pelo intertravamento (CILO) do IED de controle.
+    - assina gcbCmd: os comandos de abrir e fechar as chaves (CSWI1-3) e os
+      disjuntores (CSWI4-6), ja liberados pelo intertravamento (CILO) do IED
+      de controle.
 
-  As chaves nao aceitam comando direto do supervisorio (Pos em status-only):
-  todo comando de chave passa pelo IED de controle, senao daria para passar
-  por cima do intertravamento. Os disjuntores continuam aceitando comando do
-  supervisorio.
+  Nem as chaves nem os disjuntores aceitam comando direto do supervisorio
+  (Pos em status-only): todo comando passa pelo IED de controle (CSWI), como
+  pede a norma, senao daria para passar por cima do intertravamento. So o
+  trip da protecao chega direto no XCBR1.
+
+  Posicoes (Dbpos) no formato da norma: 01 = aberto (off), 10 = fechado (on).
 -->
 <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
   <Header id="EmpElas" nameStructure="IEDName" />
@@ -32,7 +35,7 @@
         <!-- Vao: manobra e protecao de campo -->
         <LDevice inst="VAO">
           <LN0 lnClass="LLN0" lnType="LLN01" inst="">
-            <!-- Conjunto de dados publicado no GOOSE de posicoes.
+            <!-- Conjunto de dados publicado no GOOSE de posicoes (tambem assinado pela MU).
                  O IED de controle le nesta ordem: DJ1, DJ2, DJ3, CH1, CH2, CH3. -->
             <DataSet name="dsPos">
               <FCDA ldInst="VAO" prefix="" lnClass="XCBR" lnInst="1" doName="Pos" daName="stVal" fc="ST" />
@@ -112,19 +115,32 @@
           <!-- Disjuntores (pares de LED) -->
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="1" prefix="">
             <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
-            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
-            <!-- O trip da protecao abre este disjuntor -->
+            <!-- So mostra a posicao: o comando chega por GOOSE do CSWI4 do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI>
+            <!-- O trip da protecao abre este disjuntor; os comandos do operador vem do CSWI4 -->
             <Inputs>
               <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="PTRC" lnInst="1" doName="Tr" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbTrip" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="4" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="4" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
             </Inputs>
           </LN>
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="2" prefix="">
             <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
-            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <!-- So mostra a posicao: o comando chega por GOOSE do CSWI5 do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI>
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="5" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="5" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+            </Inputs>
           </LN>
           <LN lnClass="XCBR" lnType="XCBR1_Typ" inst="3" prefix="">
             <DOI name="NamPlt" /> <DOI name="Loc" /> <DOI name="OpCnt" /> <DOI name="Beh" /> <DOI name="Health" /> <DOI name="Mod" /> <DOI name="BlkOpn" /> <DOI name="BlkCls" />
-            <DOI name="Pos"><DAI name="ctlModel"><Val>direct-with-normal-security</Val></DAI></DOI>
+            <!-- So mostra a posicao: o comando chega por GOOSE do CSWI6 do IED de controle -->
+            <DOI name="Pos"><DAI name="ctlModel"><Val>status-only</Val></DAI></DOI>
+            <Inputs>
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="6" doName="OpOpn" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+              <ExtRef iedName="EmpElas_PROT" ldInst="MEDPROT" prefix="" lnClass="CSWI" lnInst="6" doName="OpCls" daName="general" serviceType="GOOSE" srcLDInst="MEDPROT" srcLNClass="LLN0" srcCBName="gcbCmd" />
+            </Inputs>
           </LN>
         </LDevice>
       </Server>
@@ -154,7 +170,7 @@
 
     <DAType id="Originator_1"><BDA name="orCat" type="OrCat" bType="Enum" /><BDA name="orIdent" bType="Octet64" /></DAType>
     <DAType id="SPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
-    <DAType id="DPCOperate_1"><BDA name="ctlVal" bType="Dbpos" type="Dbpos" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
+    <DAType id="DPCOperate_1"><BDA name="ctlVal" bType="BOOLEAN" /><BDA name="origin" type="Originator_1" bType="Struct" /><BDA name="ctlNum" bType="INT8U" /><BDA name="T" bType="Timestamp" /><BDA name="Test" bType="BOOLEAN" /><BDA name="Check" bType="Check" /></DAType>
 
     <EnumType id="Beh"><EnumVal ord="1">on</EnumVal><EnumVal ord="2">blocked</EnumVal><EnumVal ord="3">test</EnumVal><EnumVal ord="4">test/blocked</EnumVal><EnumVal ord="5">off</EnumVal></EnumType>
     <EnumType id="HealthKind"><EnumVal ord="1">ok</EnumVal><EnumVal ord="2">warning</EnumVal><EnumVal ord="3">alarm</EnumVal></EnumType>

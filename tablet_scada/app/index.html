@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#11161d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SCADA EmPowerElas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone.svg">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header id="topo">
+  <div id="marca"><img src="icone.svg" alt=""><span>EmPowerElas</span></div>
+  <nav id="abas"></nav>
+  <div id="status-ieds"></div>
+  <div id="acoes">
+    <button id="btn-sim-falta" class="btn" hidden title="Só no modo simulado: faz o papel do botão da falta da maquete">Botão da falta (simulado)</button>
+    <a id="btn-gemeo" class="btn" href="/gemeo/" target="_blank" rel="noopener" title="Abre o gêmeo digital 3D em outra aba (só mostra, não manda comandos)">Gêmeo 3D</a>
+    <button id="btn-eventos" class="btn-icone" title="Eventos">
+      <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zm-2 15a2 2 0 0 0 4 0"/></svg>
+      <span id="contador-eventos" hidden>0</span>
+    </button>
+    <button id="btn-editar" class="btn">Editar tela</button>
+    <button id="btn-tela-cheia" class="btn-icone" title="Tela cheia">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<div id="barra-edicao" hidden>
+  <div id="paleta"></div>
+  <div class="separador"></div>
+  <button class="btn" id="ed-desfazer">Desfazer</button>
+  <button class="btn" id="ed-duplicar">Duplicar</button>
+  <button class="btn btn-perigo" id="ed-excluir">Excluir</button>
+  <div class="espaco"></div>
+  <button class="btn" id="ed-nova-tela">Nova tela</button>
+  <button class="btn" id="ed-tela-props">Tela…</button>
+  <button class="btn" id="ed-cancelar">Descartar</button>
+  <button class="btn btn-primario" id="ed-salvar">Salvar</button>
+</div>
+
+<main id="area">
+  <svg id="tela" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <pattern id="grade" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M20 0H0V20" fill="none" stroke="var(--grade)" stroke-width="1"/>
+      </pattern>
+      <pattern id="hachura" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="8" height="8" fill="var(--sem-dado)"/>
+        <path d="M0 0V8" stroke="var(--invalido)" stroke-width="3"/>
+      </pattern>
+    </defs>
+    <rect id="fundo" x="0" y="0"/>
+    <g id="camada"></g>
+    <g id="camada-selecao"></g>
+  </svg>
+  <aside id="propriedades" hidden></aside>
+</main>
+
+<aside id="painel-eventos" hidden>
+  <div class="painel-topo"><h2>Eventos</h2><button class="btn-icone" id="fechar-eventos" title="Fechar">✕</button></div>
+  <ol id="lista-eventos"></ol>
+</aside>
+
+<div id="aviso-conexao" hidden>Sem contato com o servidor da maquete. Tentando de novo…</div>
+<div id="toasts"></div>
+<div id="modal" hidden><div id="modal-caixa"></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>

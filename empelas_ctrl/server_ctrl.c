@@ -10,28 +10,42 @@
  *   - publica gcbPos: a posicao dos 3 disjuntores e das 3 chaves. E assim
  *     que o intertravamento (CILO) do IED de controle sabe o que esta aberto;
  *   - assina gcbTrip: o trip da protecao, que abre o disjuntor 1;
- *   - assina gcbCmd: os comandos de abrir e fechar as chaves (CSWI.OpOpn e
- *     CSWI.OpCls). So chegam aqui comandos que o intertravamento ja liberou.
+ *   - assina gcbCmd: os comandos de abrir e fechar as chaves (CSWI1-3) e os
+ *     disjuntores (CSWI4-6), OpOpn e OpCls. So chegam aqui comandos que o
+ *     intertravamento ja liberou.
  *
- * As chaves NAO aceitam comando direto do supervisorio: o Pos delas fica em
- * status-only. Todo comando de chave passa pelo IED de controle, senao daria
- * para passar por cima do intertravamento. Os disjuntores continuam
- * aceitando comando do supervisorio (MMS), como antes.
+ * Nem as chaves nem os disjuntores aceitam comando direto do supervisorio:
+ * o Pos de todos fica em status-only. Todo comando passa pelo IED de
+ * controle (CSWI), como pede a norma, senao daria para passar por cima do
+ * intertravamento. So o trip da protecao chega direto no disjuntor 1.
+ *
+ * Posicoes (Dbpos) no formato da norma, escritas com IedServer_updateDbposValue:
+ * 01 = aberto (off), 10 = fechado (on), 00 = em movimento.
  *
  * FITA DA FIBRA OPTICA (WS2811, 12 V)
- * Representa a comunicacao, com tres comportamentos:
- *   - pulso lento ciano, continuo: o trafego de medicao, que nunca para;
- *   - rastro ambar: um comando chegando (disjuntor pelo SCADA, chave por GOOSE);
- *   - rastro vermelho: o TRIP chegando por GOOSE do EmpElas_PROT.
+ * Mostra a comunicacao do mesmo jeito que o simulador:
+ *   - a fita inteira fica roxa, bem fraquinha (a fibra);
+ *   - bolinhas brancas e fortes andam o tempo todo: o SV, as medidas da MU,
+ *     que nunca param;
+ *   - bolinhas amarelas: GOOSE (comandos das chaves e dos disjuntores e o
+ *     trip retirado, vindos do EmpElas_PROT, e as repeticoes do GOOSE de
+ *     tempos em tempos);
+ *   - onda vermelha que toma a fita: o TRIP.
+ *
+ * Mais duas fitas (pinos fisicos 33 e 19) representam os cabos de COBRE e
+ * mostram em laranja as medidas (do TC/TP para a MU) e os comandos (da MU
+ * para o equipamento); ver FITAS 2 E 3.
  *
  * Fita atual: 5 m, 300 LEDs (60 por metro), 12 V. Cada chip WS2811 comanda
  * um grupo de 3 LEDs, entao sao 100 "pixels". Comprimento e ordem das
  * cores ficam em FITA_COUNT e FITA_TIPO; o programa testes/teste_fita
  * ajuda a descobrir os dois.
  *
- * Dado no GPIO18 (fisico 12, PWM), DIRETO no GPIO (o level shifter que
- * foi testado era lento para 800kHz e deixava a fita sempre acesa). Usa o PWM
- * da Pi, que ficou livre quando os servos foram para o PCA9685. O audio
+ * Dado no GPIO12 (fisico 32, PWM), DIRETO no GPIO (o level shifter que
+ * foi testado era lento para 800kHz e deixava a fita sempre acesa). Os
+ * pinos fisicos 40 (PCM) e 12 (GPIO18) ja foram usados antes e deram
+ * problema. O GPIO12 usa o mesmo PWM da Pi, que ficou livre quando os servos
+ * foram para o PCA9685, e tem GND do lado (fisicos 30 e 34). O audio
  * analogico da Pi tambem usa o PWM, por isso precisa estar desligado.
  *
  * SERVOS: os tres servos sao comandados pelo modulo PCA9685 via I2C.
@@ -90,6 +104,20 @@
 #define TICK_ABERTO   410   // ~2,0 ms
 #define PCA_FULL_OFF  4096  // bit especial que desliga o canal por completo
 
+// Movimento suave das chaves: o pulso muda aos poucos, um quadro do PWM
+// (20 ms) por vez, em vez de pular direto para a posicao final. A chave
+// comeca devagar, acelera no meio e freia no fim.
+// AJUSTE: SERVO_TEMPO_MS e o tempo de cada manobra. O movimento inteiro
+// (SERVO_TEMPO_MS + SERVO_FIRME_MS) precisa ficar abaixo do CMD_TIMEOUT_MS
+// da Pi das telinhas (3 s), senao ela desiste de esperar a confirmacao.
+#define SERVO_TEMPO_ABRIR_MS   1500   // duracao para ABRIR a chave
+#define SERVO_TEMPO_FECHAR_MS  1500   // duracao para FECHAR a chave (AJUSTE aqui)
+#define SERVO_PASSO_MS     20   // um quadro do PWM de 50 Hz
+#define SERVO_FIRME_MS    200   // segura na posicao final antes de cortar o pulso
+#if (SERVO_TEMPO_ABRIR_MS + SERVO_FIRME_MS) > 2500 || (SERVO_TEMPO_FECHAR_MS + SERVO_FIRME_MS) > 2500
+#warning "Manobra das chaves muito lenta: a Pi das telinhas espera no maximo 3 s (CMD_TIMEOUT_MS)"
+#endif
+
 // ================= LEDs DOS DISJUNTORES (XCBR) ===============
 #define LED_D1_VERDE  0   // wPi 0 = Fisico 11
 #define LED_D1_VERM   2   // wPi 2 = Fisico 13
@@ -107,16 +135,16 @@
 //              animacao tambem nao para e nao depende de comando nenhum.
 //
 //   COMANDO  - rastro rapido e vivo, disparado quando chega um comando
-//              (do SCADA para um disjuntor, ou por GOOSE para uma chave).
+//              (por GOOSE, para um disjuntor ou uma chave).
 //              Representa a mensagem de manobra, que e episodica. Ele
 //              interrompe o pulso de medicao, que retoma de onde parou -
 //              assim como uma mensagem de manobra tem prioridade sobre o
 //              trafego continuo.
 //
-// Os pedacos de fita sao encadeados em serie (saida de dados de um na
-// entrada do outro), com TODAS as setas no mesmo sentido, entao para a
-// Pi e uma corrente unica.
-#define FITA_GPIO       18        // GPIO18 = Fisico 12 (PWM) - fita da fibra optica
+// Esta e a fita do pino fisico 32. As fitas 2 e 3 (cobre, laranja) ficam
+// mais abaixo. Se um pedaco for emendado em outro (saida de dados de um na
+// entrada do outro, setas no mesmo sentido), para a Pi vira uma fita so.
+#define FITA_GPIO       12        // GPIO12 = Fisico 32 (PWM) - fita da fibra optica
 #define FITA_DMA        10        // canal de DMA da rpi_ws281x
 // ATENCAO: na fita de 12 V, um "pixel" e um chip WS2811 que comanda TRES
 // LEDs juntos (o grupo entre duas marcas de corte). Fita inteira de 5 m com
@@ -133,23 +161,67 @@
 #define FITA_FREQ       WS2811_TARGET_FREQ  // 800kHz
 #define FITA_BRILHO     128       // 0-255 (metade p/ reduzir corrente)
 
-// Cores no formato 0x00RRGGBB
-#define COR_MEDICAO     0x00003848  // ciano discreto - trafego continuo
-#define COR_COMANDO     0x00FFB020  // ambar forte - comando (SCADA ou GOOSE)
-#define COR_TRIP        0x00FF0000  // vermelho - trip chegando por GOOSE
+// Cores no formato 0x00RRGGBB, as mesmas do simulador (gemeo/simulador).
+#define COR_FIBRA       0x008000FF  // roxo - a fibra (fundo, sempre aceso, bem fraco)
+#define COR_SV          0x00FFFFFF  // branco - SV (contrasta com o roxo fraco do fundo)
+#define COR_GOOSE       0x00FF8C00  // amarelo - GOOSE (no simulador #ffc531; aqui com menos verde, senao a fita mostra verde-limao)
+#define COR_MMS         0x002BFF5C  // verde - MMS (sem uso hoje: o MMS nao passa pelo patio)
+#define COR_TRIP        0x00FF0000  // vermelho - trip
 
-// Tempo de uma volta completa na fita, em ms
-#define MED_VOLTA_MS    3000      // medicao: lenta, para nao competir com a atencao
-#define CMD_VOLTA_MS    1000      // comando: rapida, e uma mensagem
+// AJUSTES DA ANIMACAO
+#define FUNDO_PCT          12     // brilho do roxo de fundo (0 a 100). Fraco para o SV se destacar
+#define SV_VOLTA_MS        20000  // tempo de uma bolinha de SV atravessar a fita (maior = mais devagar)
+#define SV_ESPACO          15     // distancia entre duas bolinhas de SV, em pixels
+#define SV_PCT             100    // brilho das bolinhas de SV (as mensagens ficam em 100%)
+#define SV_CAUDA           1      // SV: bolinha pequena, 1 pixel + 1 de cauda
+#define MSG_VOLTA_MS       4000   // tempo de uma bolinha de GOOSE ou MMS atravessar a fita
+#define MSG_RAJADA         3      // bolinhas por mensagem nova (comando, trip retirado...)
+#define MSG_INTERVALO_MS   400    // espaco de tempo entre as bolinhas de uma rajada
+#define MSG_TAMANHO        2      // GOOSE/MMS: bolinha maior, 2 pixels acesos...
+#define MSG_CAUDA          3      // ...e 3 de cauda
+#define SV_VOLTA_APOS_MS   800    // enquanto passa uma rajada o SV some; depois volta aos poucos
+#define GOOSE_REPETE_MS    6000   // repeticoes do GOOSE: no maximo 1 bolinha amarela a cada 6 s
+#define TRIP_ONDA_MS       500    // tempo da onda vermelha atravessar a fita
+#define TRIP_FICA_MS       2000   // tempo que a fita fica toda vermelha
+#define TRIP_SOME_MS       600    // tempo para voltar ao roxo
+#define FITA_QUADRO_MS     20     // um quadro a cada 20 ms (50 por segundo)
 
-// Comprimento da cauda de cada pulso, em pixels. Cresce junto com a fita:
-// numa fita curta fica em 2; com 100 pixels, 8 na medicao e 12 no comando.
-#define MED_CAUDA       ((FITA_COUNT / 12 > 2) ? FITA_COUNT / 12 : 2)
-#define CMD_CAUDA       ((FITA_COUNT / 8 > 2) ? FITA_COUNT / 8 : 2)
-
-// Atraso entre o comando atuar e o rastro comecar.
-// Zero porque, na realidade, a mensagem viaja ANTES do equipamento operar.
-#define FITA_DELAY_MS   0
+// ================= FITAS 2 E 3 (cabos de cobre, laranja) ==================
+// Mais dois pedacos de fita, cada um no seu pino, mostrando a MESMA coisa:
+// laranja fraco de fundo, bolinhas das medidas andando para a MU e uma rajada
+// para o equipamento quando um disjuntor ou chave opera (comando ou trip).
+//
+//   Fita 2: GPIO13 = Fisico 33. Segundo canal do PWM, junto com a fibra
+//           (a lib manda os dois canais na mesma transmissao).
+//   Fita 3: GPIO10 = Fisico 19. Sai pelo SPI, porque a Pi so tem dois
+//           canais de PWM. Precisa do SPI ligado e de core_freq=250 no
+//           /boot/config.txt (na Pi 3, sem isso o SPI erra o tempo do sinal).
+//
+// Para desligar uma delas, ponha o COUNT em 0.
+#define FITA2_GPIO      13        // GPIO13 = Fisico 33 (PWM, canal 1)
+#define FITA2_COUNT     100       // AJUSTE: pixels da fita 2 (teste_fita 100 33)
+#define FITA2_TIPO      WS2811_STRIP_BRG
+#define FITA3_GPIO      10        // GPIO10 = Fisico 19 (SPI)
+#define FITA3_COUNT     100       // AJUSTE: pixels da fita 3 (teste_fita 100 19)
+#define FITA3_TIPO      WS2811_STRIP_BRG
+#define COR_FITAS23     0x00FF4A10  // cobre (laranja) - fitas dos pinos 33 e 19
+// Intensidade do cobre, de 0 a 100 (%). Com a fita toda acesa ela puxa bem
+// mais corrente que o rastro antigo: se a fonte de 12 V esquentar ou a cor
+// mudar no fim da fita, diminua aqui (por exemplo, 50).
+#define COBRE_PCT       100
+// Cobre com movimento, como no gemeo:
+//  - medidas: bolinhas laranja o tempo todo, do TC/TP para a MU;
+//  - comando: quando um disjuntor ou chave opera, uma rajada vai da MU para
+//    o equipamento e as medidas saem da frente enquanto ela passa.
+#define COBRE_FUNDO_PCT    20     // brilho do laranja de fundo (0 a 100)
+#define COBRE_MED_VOLTA_MS 20000  // tempo de uma bolinha de medida atravessar a fita
+#define COBRE_MED_ESPACO   15     // distancia entre as bolinhas de medida, em pixels
+// Sentido das MEDIDAS na fita (os comandos vao sempre ao contrario):
+//  -1 = andam para o comeco da fita (onde entra o fio de dados, o DIN)
+//   1 = andam para o fim da fita
+// Se as medidas estiverem andando para LONGE da MU, troque o sinal.
+#define COBRE2_SENTIDO_MED  -1    // fita 2 (pino 33)
+#define COBRE3_SENTIDO_MED  -1    // fita 3 (pino 19)
 
 // ================= GOOSE (sempre pelo CABO) ======================
 // GOOSE nao atravessa wi-fi nem roteamento: vale so na rede da maquete.
@@ -178,24 +250,29 @@ static uint8_t GOOSE_CMD_DSTMAC[6] = {0x01, 0x0c, 0xcd, 0x01, 0x00, 0x03};
 // gcbPos, APPID 0x1002, MAC 01-0C-CD-01-00-02. Ordem do dsPos:
 //   XCBR1, XCBR2, XCBR3, XSWI1, XSWI2, XSWI3 (Pos.stVal de cada um)
 
-// Qual disjuntor o trip abre. Para trocar, mude as cinco linhas juntas.
+// Qual disjuntor o trip abre. Para trocar, mude as seis linhas juntas.
 #define DJ_TRIP_INDICE    0                       // 0 = disjuntor 1
 #define DJ_TRIP_NOME      "Disjuntor 1 (XCBR1)"
 #define DJ_TRIP_VERDE     LED_D1_VERDE
 #define DJ_TRIP_VERM      LED_D1_VERM
 #define DJ_TRIP_STVAL     IEDMODEL_VAO_XCBR1_Pos_stVal
 #define DJ_TRIP_T         IEDMODEL_VAO_XCBR1_Pos_t
+#define DJ_TRIP_OBJ       IEDMODEL_VAO_XCBR1_Pos
 
-// Posicao de ponto duplo, no mesmo formato que o supervisorio le
-// (MmsValue_getBitStringAsInteger): 0 = em movimento, 1 = aberto,
-// 2 = fechado, 3 = invalido.
+// Depois do trip, a chave 1 abre sozinha para isolar o trecho da falta.
+// NAO e o convencional: numa subestacao de verdade quem abre a seccionadora
+// e o operador, depois que o disjuntor ja cortou a corrente. Aqui e
+// automatico para a demonstracao ficar completa so com o botao da falta.
+// Para voltar ao jeito convencional, troque 1 por 0.
+#define CHAVE_AUTO_NA_FALTA   1
+#define CHAVE_AUTO_ATRASO_MS  2000    // espera depois do DJ1 abrir (para dar tempo de ver)
+
+// Posicao de ponto duplo (Dbpos), com os mesmos numeros da biblioteca:
+// 0 = em movimento, 1 = aberto (DBPOS_OFF), 2 = fechado (DBPOS_ON),
+// 3 = invalido. Na rede vai no formato da norma (01 = aberto, 10 = fechado).
 #define POS_INTERMEDIARIA 0
 #define POS_ABERTA        1
 #define POS_FECHADA       2
-
-// Tipos de rastro na fita (valor de rastroPendente)
-#define RASTRO_COMANDO    1
-#define RASTRO_TRIP       2
 
 // ==============================================================
 
@@ -204,13 +281,18 @@ static uint8_t GOOSE_CMD_DSTMAC[6] = {0x01, 0x0c, 0xcd, 0x01, 0x00, 0x03};
 static volatile int running = 0;
 static IedServer iedServer = NULL;
 static int activeConnections = 0;
-static volatile int rastroPendente = 0;   // 0 = nada; RASTRO_COMANDO ou RASTRO_TRIP
 static GooseReceiver gooseReceiver = NULL;
 static int64_t ultimoStNum = -1;          // ultimo estado do GOOSE de trip ja tratado
+// Trip ainda ativo (a falta continua na linha). Enquanto isso, o disjuntor
+// do trip nao fecha: fecharia sobre a falta. Numa subestacao real, quem faz
+// esse bloqueio e o rele de bloqueio (86) ou o proprio trip mantido.
+static volatile bool tripAtivo = false;
 static int64_t ultimoStNumCmd = -1;       // stNum do ultimo GOOSE de comandos (so para o log)
-static bool cmdAnterior[6];               // valores do ultimo GOOSE de comandos
+#define N_CMD 12                          // 6 equipamentos x (abrir, fechar)
+static bool cmdAnterior[N_CMD];           // valores do ultimo GOOSE de comandos
 static int pcaFd = -1;                    // descritor I2C do PCA9685
 static bool fitaOk = false;               // a fita so e usada se iniciou bem
+static bool fita3Ok = false;              // fita 3 (SPI), idem
 
 // ----------------------------------------------------------------
 // As tres chaves. O pedido de manobra e deixado aqui pelo GOOSE de
@@ -238,14 +320,16 @@ static Chave chaves[3] = {
 static pthread_mutex_t mtxPedidos = PTHREAD_MUTEX_INITIALIZER;
 static int pedidoChave[3];                // 0 = nada; POS_ABERTA ou POS_FECHADA
 static int manobras[3];                   // contador de manobras de cada chave
+static int posChave[3] = {POS_FECHADA, POS_FECHADA, POS_FECHADA};   // posicao atual de cada chave
+static volatile uint64_t chaveAutoEm = 0; // quando abrir a chave 1 sozinha (0 = nada marcado)
 
-// Posicao dos disjuntores. O trip (thread do GOOSE) e o SCADA (thread do
-// servidor) mexem no mesmo disjuntor: este mutex faz LED e posicao mudarem
-// sempre juntos, sem um passar no meio do outro.
+// Posicao dos disjuntores. O trip e os comandos (GOOSE) e a thread do patio
+// mexem nos disjuntores: este mutex faz LED e posicao mudarem sempre
+// juntos, sem um passar no meio do outro.
 static pthread_mutex_t mtxDj = PTHREAD_MUTEX_INITIALIZER;
 static int posDisjuntor[3] = {POS_ABERTA, POS_ABERTA, POS_ABERTA};
 
-// Estrutura da fita: gpionum 18 faz a lib usar o PWM automaticamente.
+// Estrutura da fita: gpionum 12 faz a lib usar o PWM automaticamente.
 static ws2811_t fita = {
     .freq = FITA_FREQ,
     .dmanum = FITA_DMA,
@@ -255,6 +339,28 @@ static ws2811_t fita = {
             .invert = 0,
             .count = FITA_COUNT,
             .strip_type = FITA_TIPO,         // ordem das cores: ajuste la em cima
+            .brightness = FITA_BRILHO,
+        },
+        [1] = {                              // fita 2 (cobre), PWM canal 1
+            .gpionum = FITA2_COUNT > 0 ? FITA2_GPIO : 0,
+            .invert = 0,
+            .count = FITA2_COUNT,
+            .strip_type = FITA2_TIPO,
+            .brightness = FITA_BRILHO,
+        },
+    },
+};
+
+// Fita 3 (cobre): gpionum 10 faz a lib usar o SPI. Nao usa DMA.
+static ws2811_t fita3 = {
+    .freq = FITA_FREQ,
+    .dmanum = FITA_DMA,
+    .channel = {
+        [0] = {
+            .gpionum = FITA3_GPIO,
+            .invert = 0,
+            .count = FITA3_COUNT,
+            .strip_type = FITA3_TIPO,
             .brightness = FITA_BRILHO,
         },
         [1] = { .gpionum = 0, .invert = 0, .count = 0, .brightness = 0 },
@@ -299,10 +405,17 @@ static int travarInstancia(const char* nome) {
     return 1;                                     // o arquivo fica aberto ate o fim
 }
 
-// Apaga toda a fita
+// Apaga as tres fitas
 static void fitaApaga(void) {
-    for (int i = 0; i < FITA_COUNT; i++) fita.channel[0].leds[i] = 0;
-    ws2811_render(&fita);
+    if (fitaOk) {
+        for (int i = 0; i < FITA_COUNT; i++) fita.channel[0].leds[i] = 0;
+        for (int i = 0; i < FITA2_COUNT; i++) fita.channel[1].leds[i] = 0;
+        ws2811_render(&fita);
+    }
+    if (fita3Ok) {
+        for (int i = 0; i < FITA3_COUNT; i++) fita3.channel[0].leds[i] = 0;
+        ws2811_render(&fita3);
+    }
 }
 
 // Escurece uma cor por um fator de 0 a 100 por cento.
@@ -313,24 +426,145 @@ static uint32_t corAtenuada(uint32_t cor, int pct) {
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
 
-// Desenha um pulso com cauda na posicao dada, apagando o resto da fita.
-// A cauda vai ficando mais fraca atras da cabeca, dando sensacao de
-// movimento em vez de um ponto piscando.
-//   circular = true:  a cauda que passa do comeco aparece no fim (a medicao
-//                     fica dando voltas);
-//   circular = false: o que passa das pontas some (o rastro de um comando
-//                     entra por uma ponta e sai pela outra).
-static void fitaDesenhaPulso(int pos, uint32_t cor, int cauda, bool circular) {
-    for (int i = 0; i < FITA_COUNT; i++) fita.channel[0].leds[i] = 0;
+// Mistura duas cores: pct = quanto da cor nova entra (0 a 100).
+static uint32_t corMistura(uint32_t base, uint32_t nova, int pct) {
+    if (pct <= 0) return base;
+    if (pct >= 100) return nova;
+    uint32_t r = (((base >> 16) & 0xFF) * (100 - pct) + ((nova >> 16) & 0xFF) * pct) / 100;
+    uint32_t g = (((base >>  8) & 0xFF) * (100 - pct) + ((nova >>  8) & 0xFF) * pct) / 100;
+    uint32_t b = (( base        & 0xFF) * (100 - pct) + ( nova        & 0xFF) * pct) / 100;
+    return (r << 16) | (g << 8) | b;
+}
 
-    for (int c = 0; c < cauda; c++) {
-        int idx = pos - c;
-        if (circular && idx < 0) idx += FITA_COUNT;   // volta ao fim da fita
-        if (idx < 0 || idx >= FITA_COUNT) continue;
-        int intensidade = 100 - (c * 100 / (cauda + 1));
-        fita.channel[0].leds[idx] = corAtenuada(cor, intensidade);
+// Pinta a fita inteira de uma cor so (fundo da fibra, cobre parado).
+static void corInteira(ws2811_led_t* leds, int n, uint32_t cor) {
+    for (int i = 0; i < n; i++) leds[i] = cor;
+}
+
+// Uma bolinha: 'tamanho' pixels fortes na frente e uma cauda que vai
+// sumindo no fundo. pct = brilho da bolinha (0 a 100).
+// sentido = +1: anda para o fim da fita (do IED para a MU), cauda atras;
+// sentido = -1: anda para o comeco da fita (da MU para o IED).
+static void desenhaBolinha(ws2811_led_t* leds, int n, int cabeca, uint32_t cor,
+                           int tamanho, int cauda, int pct, int sentido) {
+    for (int c = 0; c < tamanho + cauda; c++) {
+        int i = cabeca - sentido * c;
+        if (i < 0 || i >= n) continue;
+        int k = (c < tamanho) ? 100 : 100 - (c - tamanho + 1) * 100 / (cauda + 1);
+        leds[i] = corMistura(leds[i], cor, k * pct / 100);
     }
-    ws2811_render(&fita);
+}
+
+// ----------------------------------------------------------------
+// Mensagens na fibra. As threads do GOOSE e do servidor so pedem as
+// bolinhas aqui; quem desenha e a thread da fita.
+// ----------------------------------------------------------------
+#define MAX_BOLINHAS 32
+// discreta = bolinha avulsa (repeticao do GOOSE): nao esconde o SV
+typedef struct { uint64_t inicio; uint32_t cor; bool viva; bool discreta; } Bolinha;
+static Bolinha bolinhas[MAX_BOLINHAS];
+static uint64_t tripInicio = 0;            // 0 = sem onda de trip
+static uint64_t ultimaRepeticao = 0;       // ultima bolinha de repeticao do GOOSE
+static pthread_mutex_t mtxFita = PTHREAD_MUTEX_INITIALIZER;
+
+// Solta 'quantas' bolinhas de uma cor, uma atras da outra
+static void fitaSolta(uint32_t cor, int quantas, bool discreta) {
+    uint64_t agora = Hal_getTimeInMs();
+    pthread_mutex_lock(&mtxFita);
+    for (int q = 0; q < quantas; q++) {
+        for (int i = 0; i < MAX_BOLINHAS; i++) {
+            if (!bolinhas[i].viva) {
+                bolinhas[i].viva = true;
+                bolinhas[i].cor = cor;
+                bolinhas[i].inicio = agora + (uint64_t) q * MSG_INTERVALO_MS;
+                bolinhas[i].discreta = discreta;
+                break;
+            }
+        }
+    }
+    pthread_mutex_unlock(&mtxFita);
+}
+
+// Mensagem de verdade (comando, trip retirado...): o SV sai da frente
+static void fitaMensagem(uint32_t cor, int quantas) { fitaSolta(cor, quantas, false); }
+
+// Repeticao do GOOSE (o "continuo aqui"): uma bolinha amarela avulsa, sem exagero
+static void fitaRepeticaoGoose(void) {
+    uint64_t agora = Hal_getTimeInMs();
+    if (agora - ultimaRepeticao < GOOSE_REPETE_MS) return;
+    ultimaRepeticao = agora;
+    fitaSolta(COR_GOOSE, 1, true);
+}
+
+// Um disjuntor ou chave vai operar: rajada no cobre, da MU para o equipamento
+static uint64_t cobreCmdInicio = 0;
+static void fitaCobreComando(void) {
+    pthread_mutex_lock(&mtxFita);
+    cobreCmdInicio = Hal_getTimeInMs();
+    pthread_mutex_unlock(&mtxFita);
+}
+
+static void fitaTrip(void) {
+    pthread_mutex_lock(&mtxFita);
+    tripInicio = Hal_getTimeInMs();
+    pthread_mutex_unlock(&mtxFita);
+}
+
+// Monta o quadro da fibra para o instante 'agora'
+static void fitaQuadroFibra(ws2811_led_t* leds, int n, uint64_t agora) {
+    static uint64_t ultimaRajada = 0;      // ultimo quadro com rajada na fita
+    corInteira(leds, n, corAtenuada(COR_FIBRA, FUNDO_PCT));
+
+    // Copia as bolinhas vivas (GOOSE e MMS) e ve se tem rajada passando
+    struct { int pos; uint32_t cor; } vis[MAX_BOLINHAS];
+    int nv = 0;
+    pthread_mutex_lock(&mtxFita);
+    for (int i = 0; i < MAX_BOLINHAS; i++) {
+        if (!bolinhas[i].viva) continue;
+        if (!bolinhas[i].discreta) ultimaRajada = agora;   // inclui as que ainda vao entrar
+        if (agora < bolinhas[i].inicio) continue;
+        int pos = (int) ((agora - bolinhas[i].inicio) * (uint64_t) n / MSG_VOLTA_MS);
+        if (pos - (MSG_TAMANHO + MSG_CAUDA) >= n) { bolinhas[i].viva = false; continue; }
+        vis[nv].pos = pos; vis[nv].cor = bolinhas[i].cor; nv++;
+    }
+    uint64_t tr = tripInicio;
+    pthread_mutex_unlock(&mtxFita);
+
+    // SV: trem de bolinhas pequenas e mais fracas que nunca para. Enquanto
+    // passa uma rajada (comando), ele sai da frente para nao misturar as cores.
+    int svPct = SV_PCT;
+    if (ultimaRajada != 0) {
+        uint64_t desde = agora - ultimaRajada;
+        svPct = (desde >= SV_VOLTA_APOS_MS) ? SV_PCT : (int) (SV_PCT * desde / SV_VOLTA_APOS_MS);
+    }
+    if (svPct > 0) {
+        int desloc = (int) ((agora * (uint64_t) n / SV_VOLTA_MS) % SV_ESPACO);
+        // O SV sai da MU e vai para o IED (PROT): anda no sentido contrario das
+        // mensagens, por isso a posicao e espelhada (n - 1 - cab).
+        for (int cab = desloc; cab < n + SV_CAUDA + 1; cab += SV_ESPACO)
+            desenhaBolinha(leds, n, n - 1 - cab, COR_SV, 1, SV_CAUDA, svPct, -1);
+    }
+
+    // GOOSE e MMS por cima, maiores e mais fortes
+    for (int k = 0; k < nv; k++)
+        desenhaBolinha(leds, n, vis[k].pos, vis[k].cor, MSG_TAMANHO, MSG_CAUDA, 100, 1);
+
+    // Trip: onda vermelha, fica um tempo e volta ao roxo
+    if (tr == 0 || agora < tr) return;
+    uint64_t t = agora - tr;
+    if (t < TRIP_ONDA_MS) {
+        int frente = (int) (t * (uint64_t) n / TRIP_ONDA_MS);
+        for (int i = 0; i <= frente && i < n; i++) leds[i] = COR_TRIP;
+    } else if (t < TRIP_ONDA_MS + TRIP_FICA_MS) {
+        corInteira(leds, n, COR_TRIP);
+    } else if (t < TRIP_ONDA_MS + TRIP_FICA_MS + TRIP_SOME_MS) {
+        int pct = 100 - (int) ((t - TRIP_ONDA_MS - TRIP_FICA_MS) * 100 / TRIP_SOME_MS);
+        for (int i = 0; i < n; i++) leds[i] = corMistura(leds[i], COR_TRIP, pct);
+    } else {
+        pthread_mutex_lock(&mtxFita);
+        if (tripInicio == tr) tripInicio = 0;
+        pthread_mutex_unlock(&mtxFita);
+    }
 }
 
 // Ajusta a frequencia de PWM do PCA9685. Exige colocar o chip em modo
@@ -358,12 +592,35 @@ static void pcaSetPwm(int fd, int canal, int on, int off) {
     wiringPiI2CWriteReg8(fd, reg + 3, off >> 8);
 }
 
-// Move um servo e corta o pulso em seguida. Sem o corte, o servo fica
-// tremendo e zumbindo enquanto estiver sob comando.
+// Ultimo pulso mandado a cada canal (0 = posicao desconhecida)
+static int servoTick[16];
+
+// Move um servo devagar ate a posicao e corta o pulso em seguida. Sem o
+// corte, o servo fica tremendo e zumbindo enquanto estiver sob comando.
+// Na primeira vez (ao ligar), a posicao de partida e desconhecida: ai o
+// servo vai direto, como antes.
 static void moverServo(int canal, bool fechar) {
     if (pcaFd < 0) return;
-    pcaSetPwm(pcaFd, canal, 0, fechar ? TICK_FECHADO : TICK_ABERTO);
-    delay(500);
+    int alvo = fechar ? TICK_FECHADO : TICK_ABERTO;
+    int inicio = servoTick[canal];
+
+    if (inicio > 0 && inicio != alvo) {
+        int tempo = fechar ? SERVO_TEMPO_FECHAR_MS : SERVO_TEMPO_ABRIR_MS;
+        int passos = tempo / SERVO_PASSO_MS;
+        if (passos < 1) passos = 1;
+        for (int i = 1; i <= passos; i++) {
+            double t = (double) i / passos;
+            double s = t * t * (3.0 - 2.0 * t);        // suave no comeco e no fim
+            double tick = inicio + (alvo - inicio) * s;
+            pcaSetPwm(pcaFd, canal, 0, (int) (tick + 0.5));
+            delay(SERVO_PASSO_MS);
+        }
+        delay(SERVO_FIRME_MS);
+    } else {
+        pcaSetPwm(pcaFd, canal, 0, alvo);
+        delay(500);
+    }
+    servoTick[canal] = alvo;
     pcaSetPwm(pcaFd, canal, 0, PCA_FULL_OFF);
 }
 
@@ -375,73 +632,78 @@ static void setLedsDisjuntor(int pinVerde, int pinVerm, bool fechado) {
 // ----------------------------------------------------------------
 // Escreve uma posicao (0 a 3) e o selo de tempo no modelo. Se essa
 // posicao esta no dsPos, a escrita dispara o GOOSE de posicoes.
-//
-// Mesma convencao dos comandos do SCADA neste projeto: 1 = aberto,
-// 2 = fechado (valor lido com MmsValue_getBitStringAsInteger).
-// Nao usar IedServer_updateDbposValue aqui: ela codifica os bits na
-// ordem inversa, e o SCADA passaria a ler "2" (fechado) para aberto.
+// IedServer_updateDbposValue grava no formato da norma (01 = aberto,
+// 10 = fechado), que e o que o Elipse, a MU e a PROT leem.
 // ----------------------------------------------------------------
 static void escreverPosicao(DataAttribute* stVal, DataAttribute* t, int pos) {
-    MmsValue* v = MmsValue_newBitString(2);
-    MmsValue_setBitStringFromInteger(v, pos);
-
     IedServer_lockDataModel(iedServer);
     IedServer_updateUTCTimeAttributeValue(iedServer, t, Hal_getTimeInMs());   // horario antes do valor
-    IedServer_updateAttributeValue(iedServer, stVal, v);
+    IedServer_updateDbposValue(iedServer, stVal, (Dbpos) pos);
     IedServer_unlockDataModel(iedServer);
-
-    MmsValue_delete(v);
 }
 
 // Mesma coisa, sem travar o modelo: usada nos disjuntores, que ja estao
 // protegidos pelo mtxDj. (A funcao de atualizar o valor ja se protege
 // sozinha por dentro.)
 static void escreverPosicaoDj(DataAttribute* stVal, DataAttribute* t, int pos) {
-    MmsValue* v = MmsValue_newBitString(2);
-    MmsValue_setBitStringFromInteger(v, pos);
     IedServer_updateUTCTimeAttributeValue(iedServer, t, Hal_getTimeInMs());
-    IedServer_updateAttributeValue(iedServer, stVal, v);
-    MmsValue_delete(v);
+    IedServer_updateDbposValue(iedServer, stVal, (Dbpos) pos);
 }
 
-// Thread da fita.
-//
-// Em repouso, roda o pulso lento de medicao indefinidamente. Quando um
-// comando chega (rastroPendente), o pulso de medicao cede a vez: o rastro
-// rapido atravessa a fita e, ao terminar, a medicao retoma de onde parou.
-void* fita_thread(void* arg) {
-    int posMedicao = 0;
+// Monta o quadro de uma fita de cobre. 'sent' = sentido das medidas.
+static void fitaQuadroCobre(ws2811_led_t* leds, int n, uint64_t agora, int sent) {
+    corInteira(leds, n, corAtenuada(COR_FITAS23, COBRE_FUNDO_PCT * COBRE_PCT / 100));
+    pthread_mutex_lock(&mtxFita);
+    uint64_t ci = cobreCmdInicio;
+    pthread_mutex_unlock(&mtxFita);
 
-    // Passo de cada animacao, derivado do tempo de volta e do tamanho da fita
-    const int medPassoMs = (FITA_COUNT > 0) ? (MED_VOLTA_MS / FITA_COUNT) : 50;
-    const int cmdPassoMs = (FITA_COUNT > 0) ? (CMD_VOLTA_MS / FITA_COUNT) : 20;
+    // Comando: MSG_RAJADA bolinhas maiores, no sentido contrario ao das medidas
+    uint64_t duracao = MSG_VOLTA_MS + (uint64_t) MSG_RAJADA * MSG_INTERVALO_MS + 300;
+    bool rajada = ci != 0 && agora >= ci && agora - ci < duracao;
+    int medPct = COBRE_PCT;
+    if (ci != 0 && agora >= ci) {
+        uint64_t desde = agora - ci;
+        if (desde < duracao) medPct = 0;
+        else if (desde < duracao + SV_VOLTA_APOS_MS) medPct = (int) (COBRE_PCT * (desde - duracao) / SV_VOLTA_APOS_MS);
+    }
 
-    while (running) {
-
-        if (rastroPendente) {
-            int tipo = rastroPendente;
-            rastroPendente = 0;
-            uint32_t cor = (tipo == RASTRO_TRIP) ? COR_TRIP : COR_COMANDO;
-
-            if (FITA_DELAY_MS > 0) Thread_sleep(FITA_DELAY_MS);
-
-            // Rastro da mensagem: atravessa a fita uma vez, do inicio ao fim,
-            // ate a cauda inteira sair pela outra ponta
-            for (int i = 0; i < FITA_COUNT + CMD_CAUDA - 1 && running; i++) {
-                fitaDesenhaPulso(i, cor, CMD_CAUDA, false);
-                Thread_sleep(cmdPassoMs);
-            }
-            LOG_PRINT("[FITA] %s percorreu a fibra.\n",
-                      (tipo == RASTRO_TRIP) ? "Trip por GOOSE" : "Comando");
-
-            // Volta ao pulso de medicao de onde ele estava
-            continue;
+    // Medidas (TC/TP -> MU)
+    if (medPct > 0) {
+        int desloc = (int) ((agora * (uint64_t) n / COBRE_MED_VOLTA_MS) % COBRE_MED_ESPACO);
+        for (int cab = desloc; cab < n + 2; cab += COBRE_MED_ESPACO) {
+            int pos = (sent > 0) ? cab : n - 1 - cab;
+            desenhaBolinha(leds, n, pos, COR_FITAS23, 1, 1, medPct, sent);
         }
+    }
+    // Comando (MU -> equipamento)
+    if (rajada) {
+        for (int q = 0; q < MSG_RAJADA; q++) {
+            uint64_t t0 = ci + (uint64_t) q * MSG_INTERVALO_MS;
+            if (agora < t0) continue;
+            int p = (int) ((agora - t0) * (uint64_t) n / MSG_VOLTA_MS);
+            if (p - (MSG_TAMANHO + MSG_CAUDA) >= n) continue;
+            int pos = (sent > 0) ? n - 1 - p : p;
+            desenhaBolinha(leds, n, pos, COR_FITAS23, MSG_TAMANHO, MSG_CAUDA, COBRE_PCT, -sent);
+        }
+    }
+}
 
-        // Repouso: pulso continuo de medicao
-        fitaDesenhaPulso(posMedicao, COR_MEDICAO, MED_CAUDA, true);
-        posMedicao = (posMedicao + 1) % FITA_COUNT;
-        Thread_sleep(medPassoMs);
+// Thread da fita: desenha um quadro a cada FITA_QUADRO_MS. A fibra e
+// calculada pelo relogio, entao as bolinhas andam sempre no mesmo ritmo.
+// As fitas de cobre tambem tem movimento, entao sao redesenhadas a cada quadro.
+void* fita_thread(void* arg) {
+    while (running) {
+        uint64_t agora = Hal_getTimeInMs();
+        if (fitaOk) {
+            fitaQuadroFibra(fita.channel[0].leds, FITA_COUNT, agora);
+            if (FITA2_COUNT > 0) fitaQuadroCobre(fita.channel[1].leds, FITA2_COUNT, agora, COBRE2_SENTIDO_MED);
+            ws2811_render(&fita);
+        }
+        if (fita3Ok) {
+            fitaQuadroCobre(fita3.channel[0].leds, FITA3_COUNT, agora, COBRE3_SENTIDO_MED);
+            ws2811_render(&fita3);
+        }
+        Thread_sleep(FITA_QUADRO_MS);
     }
     return NULL;
 }
@@ -456,6 +718,21 @@ void* fita_thread(void* arg) {
 // ----------------------------------------------------------------
 void* patio_thread(void* arg) {
     while (running) {
+        // Abertura automatica da chave 1 depois do trip (ver CHAVE_AUTO_NA_FALTA)
+        if (chaveAutoEm != 0 && Hal_getTimeInMs() >= chaveAutoEm) {
+            chaveAutoEm = 0;
+            pthread_mutex_lock(&mtxDj);
+            int dj = posDisjuntor[DJ_TRIP_INDICE];
+            pthread_mutex_unlock(&mtxDj);
+            if (dj == POS_ABERTA && posChave[DJ_TRIP_INDICE] == POS_FECHADA) {
+                LOG_PRINT("--------------------------------------------------\n");
+                LOG_PRINT("[AUTO] Falta isolada pelo %s: abrindo a %s sozinha\n", DJ_TRIP_NOME, chaves[DJ_TRIP_INDICE].nome);
+                LOG_PRINT("       (so na maquete; no real quem abre e o operador).\n");
+                pthread_mutex_lock(&mtxPedidos);
+                pedidoChave[DJ_TRIP_INDICE] = POS_ABERTA;
+                pthread_mutex_unlock(&mtxPedidos);
+            }
+        }
         for (int n = 0; n < 3; n++) {
             pthread_mutex_lock(&mtxPedidos);
             int alvo = pedidoChave[n];
@@ -479,13 +756,14 @@ void* patio_thread(void* arg) {
                 continue;
             }
 
-            rastroPendente = RASTRO_COMANDO;                   // a fita mostra a mensagem
             escreverPosicao(chaves[n].stVal, chaves[n].t, POS_INTERMEDIARIA);
             LOG_PRINT("[CHAVE] %s %s...\n", chaves[n].nome, fechar ? "fechando" : "abrindo");
 
-            moverServo(chaves[n].canal, fechar);               // leva ~0,5 s
+            fitaCobreComando();                                // a ordem desce pelo cobre
+            moverServo(chaves[n].canal, fechar);               // leva SERVO_TEMPO_MS
 
             escreverPosicao(chaves[n].stVal, chaves[n].t, alvo);
+            posChave[n] = alvo;
             manobras[n]++;
             IedServer_lockDataModel(iedServer);
             IedServer_updateInt32AttributeValue(iedServer, chaves[n].opCnt, manobras[n]);
@@ -507,11 +785,15 @@ void* patio_thread(void* arg) {
 // sabendo que o disjuntor abriu (o que libera as chaves desse vao).
 // ----------------------------------------------------------------
 static void abrirDisjuntorPorTrip(void) {
+    fitaCobreComando();                                  // a ordem de abrir desce pelo cobre
     pthread_mutex_lock(&mtxDj);
     setLedsDisjuntor(DJ_TRIP_VERDE, DJ_TRIP_VERM, false);
     posDisjuntor[DJ_TRIP_INDICE] = POS_ABERTA;
     escreverPosicaoDj(DJ_TRIP_STVAL, DJ_TRIP_T, POS_ABERTA);
     pthread_mutex_unlock(&mtxDj);
+#if CHAVE_AUTO_NA_FALTA
+    chaveAutoEm = Hal_getTimeInMs() + CHAVE_AUTO_ATRASO_MS;   // a thread do patio abre a chave 1
+#endif
 }
 
 // ----------------------------------------------------------------
@@ -523,7 +805,10 @@ static void abrirDisjuntorPorTrip(void) {
 // ----------------------------------------------------------------
 static void gooseTripListener(GooseSubscriber sub, void* parameter) {
     uint32_t stNum = GooseSubscriber_getStNum(sub);
-    if ((int64_t) stNum == ultimoStNum) return;          // repeticao do mesmo estado
+    if ((int64_t) stNum == ultimoStNum) {                // repeticao do mesmo estado
+        fitaRepeticaoGoose();                            // so uma bolinha amarela de vez em quando
+        return;
+    }
 
     bool primeira = (ultimoStNum < 0);
     ultimoStNum = stNum;
@@ -535,8 +820,9 @@ static void gooseTripListener(GooseSubscriber sub, void* parameter) {
         return;
     }
 
+    tripAtivo = MmsValue_getBoolean(tr);
     if (MmsValue_getBoolean(tr)) {
-        rastroPendente = RASTRO_TRIP;                    // a fita mostra a mensagem
+        fitaTrip();                                      // onda vermelha na fibra
         abrirDisjuntorPorTrip();
         LOG_PRINT("--------------------------------------------------\n");
         LOG_PRINT("[GOOSE] TRIP recebido do EmpElas_PROT (stNum=%u)\n", stNum);
@@ -545,23 +831,53 @@ static void gooseTripListener(GooseSubscriber sub, void* parameter) {
     }
     else if (primeira) {
         LOG_PRINT("[GOOSE] Assinatura do trip ativa (stNum=%u, sem trip).\n", stNum);
+        fitaMensagem(COR_GOOSE, 1);
     }
     else {
-        LOG_PRINT("[GOOSE] Trip retirado (stNum=%u). %s continua aberto: fechar pelo SCADA.\n",
+        LOG_PRINT("[GOOSE] Trip retirado (stNum=%u). %s continua aberto: fechar pelo supervisorio (CSWI4).\n",
                   stNum, DJ_TRIP_NOME);
+        fitaMensagem(COR_GOOSE, MSG_RAJADA);
     }
 }
 
 // ----------------------------------------------------------------
-// Chamada a cada GOOSE de comandos das chaves recebido (inclusive as
-// repeticoes).
+// Manobra de um disjuntor pedida pelo IED de controle (CSWI4-6, por GOOSE).
+// O intertravamento (CILO4-6) ja foi conferido la. Aqui so se confere o
+// que e do proprio patio: o disjuntor do trip nao fecha com o trip ativo.
+// ----------------------------------------------------------------
+static const int ledVerde[3] = { LED_D1_VERDE, LED_D2_VERDE, LED_D3_VERDE };
+static const int ledVerm[3]  = { LED_D1_VERM,  LED_D2_VERM,  LED_D3_VERM };
+static DataAttribute* const djStVal[3] = { IEDMODEL_VAO_XCBR1_Pos_stVal, IEDMODEL_VAO_XCBR2_Pos_stVal, IEDMODEL_VAO_XCBR3_Pos_stVal };
+static DataAttribute* const djT[3]     = { IEDMODEL_VAO_XCBR1_Pos_t, IEDMODEL_VAO_XCBR2_Pos_t, IEDMODEL_VAO_XCBR3_Pos_t };
+
+static void manobrarDisjuntor(int n, bool fechar) {
+    if (fechar && n == DJ_TRIP_INDICE && tripAtivo) {
+        LOG_PRINT("[DISJUNTOR] Disjuntor %d NAO fechou: o trip esta ativo.\n", n + 1);
+        LOG_PRINT("--------------------------------------------------\n");
+        return;
+    }
+    fitaCobreComando();                                  // a ordem desce pelo cobre
+    pthread_mutex_lock(&mtxDj);
+    setLedsDisjuntor(ledVerde[n], ledVerm[n], fechar);
+    posDisjuntor[n] = fechar ? POS_FECHADA : POS_ABERTA;
+    escreverPosicaoDj(djStVal[n], djT[n], posDisjuntor[n]);
+    pthread_mutex_unlock(&mtxDj);
+    LOG_PRINT("[DISJUNTOR] Disjuntor %d (XCBR%d) %s. Posicao publicada por GOOSE (gcbPos).\n",
+              n + 1, n + 1, fechar ? "FECHADO" : "ABERTO");
+    LOG_PRINT("--------------------------------------------------\n");
+}
+
+// ----------------------------------------------------------------
+// Chamada a cada GOOSE de comandos recebido (inclusive as repeticoes).
+// Ordem do dsCmd: chave 1 abrir/fechar, chave 2, chave 3, disjuntor 1
+// abrir/fechar, disjuntor 2, disjuntor 3 (12 valores).
 //
-// Cada chave tem dois sinais: abrir (OpOpn) e fechar (OpCls). O IED de
-// controle deixa o sinal em "verdadeiro" enquanto espera a chave chegar
-// na posicao pedida, e depois volta para "falso". A chave mexe so na
-// SUBIDA do sinal (falso -> verdadeiro). As repeticoes trazem os mesmos
-// valores e a volta para "falso" nao e subida, entao nenhuma delas faz
-// a chave mexer de novo.
+// Cada equipamento tem dois sinais: abrir (OpOpn) e fechar (OpCls). O IED
+// de controle deixa o sinal em "verdadeiro" enquanto espera o equipamento
+// chegar na posicao pedida, e depois volta para "falso". A manobra
+// acontece so na SUBIDA do sinal (falso -> verdadeiro). As repeticoes
+// trazem os mesmos valores e a volta para "falso" nao e subida, entao
+// nenhuma delas faz o equipamento mexer de novo.
 //
 // A primeira mensagem depois que este programa abre so serve de
 // referencia: um comando que ja estava no ar antes disso nao e executado.
@@ -570,13 +886,16 @@ static bool cmdReferencia = false;        // ja chegou a primeira mensagem?
 
 static void gooseCmdListener(GooseSubscriber sub, void* parameter) {
     uint32_t stNum = GooseSubscriber_getStNum(sub);
+    // Na fibra: estado novo = rajada amarela; repeticao = uma bolinha de vez em quando
+    if ((int64_t) stNum != ultimoStNumCmd) fitaMensagem(COR_GOOSE, MSG_RAJADA);
+    else fitaRepeticaoGoose();
     MmsValue* valores = GooseSubscriber_getDataSetValues(sub);
-    bool agora[6];
-    for (int k = 0; k < 6; k++) {
+    bool agora[N_CMD];
+    for (int k = 0; k < N_CMD; k++) {
         MmsValue* v = valores ? MmsValue_getElement(valores, k) : NULL;
         if (v == NULL || MmsValue_getType(v) != MMS_BOOLEAN) {
             if ((int64_t) stNum != ultimoStNumCmd)
-                LOG_PRINT("[GOOSE] Comando com formato inesperado (stNum=%u), ignorado.\n", stNum);
+                LOG_PRINT("[GOOSE] Comando com formato inesperado (stNum=%u), ignorado. Os dois .icd estao na mesma versao?\n", stNum);
             ultimoStNumCmd = stNum;
             return;
         }
@@ -587,7 +906,7 @@ static void gooseCmdListener(GooseSubscriber sub, void* parameter) {
     if (!cmdReferencia) {
         cmdReferencia = true;
         memcpy(cmdAnterior, agora, sizeof(agora));
-        LOG_PRINT("[GOOSE] Assinatura dos comandos das chaves ativa (stNum=%u).\n", stNum);
+        LOG_PRINT("[GOOSE] Assinatura dos comandos (chaves e disjuntores) ativa (stNum=%u).\n", stNum);
         return;
     }
 
@@ -607,6 +926,20 @@ static void gooseCmdListener(GooseSubscriber sub, void* parameter) {
         pedidoChave[n] = abrir ? POS_ABERTA : POS_FECHADA;
         pthread_mutex_unlock(&mtxPedidos);
     }
+    for (int n = 0; n < 3; n++) {
+        int k = 6 + 2 * n;
+        bool abrir  = agora[k]     && !cmdAnterior[k];
+        bool fechar = agora[k + 1] && !cmdAnterior[k + 1];
+        if (!abrir && !fechar) continue;
+        if (abrir && fechar) {
+            LOG_PRINT("[GOOSE] CSWI%d pediu abrir e fechar ao mesmo tempo (stNum=%u). Ignorado.\n", n + 4, stNum);
+            continue;
+        }
+        LOG_PRINT("--------------------------------------------------\n");
+        LOG_PRINT("[GOOSE] Comando do IED de controle (stNum=%u): %s o disjuntor %d\n",
+                  stNum, abrir ? "ABRIR" : "FECHAR", n + 1);
+        manobrarDisjuntor(n, fechar);
+    }
     memcpy(cmdAnterior, agora, sizeof(agora));
 }
 
@@ -623,106 +956,12 @@ static void connectionHandler(IedServer self, ClientConnection connection, bool 
     }
 }
 
-// So os disjuntores aceitam comando do supervisorio. As chaves ficam em
-// status-only e nem chegam aqui.
-static CheckHandlerResult checkHandler(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
-    if (parameter == IEDMODEL_VAO_XCBR1_Pos ||
-        parameter == IEDMODEL_VAO_XCBR2_Pos ||
-        parameter == IEDMODEL_VAO_XCBR3_Pos)
-        return CONTROL_ACCEPTED;
-    return CONTROL_OBJECT_UNDEFINED;
-}
-
-static ControlHandlerResult controlHandlerForBinaryOutput(ControlAction action, void* parameter, MmsValue* value, bool test) {
-    uint64_t timestamp = Hal_getTimeInMs();
-    ClientConnection clientCon = ControlAction_getClientConnection(action);
-    const char* clientIP = (clientCon) ? ClientConnection_getPeerAddress(clientCon) : "Desconhecido";
-
-    if (parameter == IEDMODEL_VAO_XCBR1_Pos ||
-        parameter == IEDMODEL_VAO_XCBR2_Pos ||
-        parameter == IEDMODEL_VAO_XCBR3_Pos)
-    {
-        bool state = false;
-        MmsValue* ctlVal = value;
-        if (MmsValue_getType(value) == MMS_STRUCTURE) ctlVal = MmsValue_getElement(value, 0);
-
-        if (ctlVal != NULL) {
-            if (MmsValue_getType(ctlVal) == MMS_BIT_STRING) {
-                int val = MmsValue_getBitStringAsInteger(ctlVal);
-                state = (val == 2);
-            } else if (MmsValue_getType(ctlVal) == MMS_BOOLEAN) {
-                state = MmsValue_getBoolean(ctlVal);
-            } else if (MmsValue_getType(ctlVal) == MMS_INTEGER) {
-                state = (MmsValue_toInt32(ctlVal) > 0);
-            }
-        }
-
-        // A posicao gravada e sempre um ponto duplo valido (1 ou 2),
-        // qualquer que seja o formato em que o comando chegou.
-        MmsValue* pos = MmsValue_newBitString(2);
-        MmsValue_setBitStringFromInteger(pos, state ? POS_FECHADA : POS_ABERTA);
-
-        LOG_PRINT("--------------------------------------------------\n");
-        LOG_PRINT("[COMANDO] Recebido de: %s\n", clientIP);
-
-        pthread_mutex_lock(&mtxDj);
-        if (parameter == IEDMODEL_VAO_XCBR1_Pos) {
-            setLedsDisjuntor(LED_D1_VERDE, LED_D1_VERM, state);
-            posDisjuntor[0] = state ? POS_FECHADA : POS_ABERTA;
-            LOG_PRINT("   >> Acao: XCBR1 (Disjuntor 1) %s\n", state ? "FECHADO" : "ABERTO");
-            IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XCBR1_Pos_t, timestamp);
-            IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XCBR1_Pos_stVal, pos);
-        }
-        else if (parameter == IEDMODEL_VAO_XCBR2_Pos) {
-            setLedsDisjuntor(LED_D2_VERDE, LED_D2_VERM, state);
-            posDisjuntor[1] = state ? POS_FECHADA : POS_ABERTA;
-            LOG_PRINT("   >> Acao: XCBR2 (Disjuntor 2) %s\n", state ? "FECHADO" : "ABERTO");
-            IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XCBR2_Pos_t, timestamp);
-            IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XCBR2_Pos_stVal, pos);
-        }
-        else if (parameter == IEDMODEL_VAO_XCBR3_Pos) {
-            setLedsDisjuntor(LED_D3_VERDE, LED_D3_VERM, state);
-            posDisjuntor[2] = state ? POS_FECHADA : POS_ABERTA;
-            LOG_PRINT("   >> Acao: XCBR3 (Disjuntor 3) %s\n", state ? "FECHADO" : "ABERTO");
-            IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_VAO_XCBR3_Pos_t, timestamp);
-            IedServer_updateAttributeValue(iedServer, IEDMODEL_VAO_XCBR3_Pos_stVal, pos);
-        }
-        pthread_mutex_unlock(&mtxDj);
-        MmsValue_delete(pos);
-        LOG_PRINT("   >> Posicao publicada por GOOSE (gcbPos).\n");
-
-        // Qualquer comando do SCADA dispara o rastro ambar na fita
-        rastroPendente = RASTRO_COMANDO;
-
-        LOG_PRINT("--------------------------------------------------\n");
-    } else {
-        return CONTROL_RESULT_FAILED;
-    }
-    return CONTROL_RESULT_OK;
-}
-
-// O supervisorio pode trocar o modelo de controle dos DISJUNTORES.
-// O das chaves nao tem este tratamento: fica em status-only.
-static MmsDataAccessError writeAccessHandler(DataAttribute* dataAttribute, MmsValue* value, ClientConnection connection, void* parameter) {
-    ControlModel ctlModelVal = (ControlModel) MmsValue_toInt32(value);
-    if ((ctlModelVal == CONTROL_MODEL_STATUS_ONLY) || (ctlModelVal == CONTROL_MODEL_DIRECT_NORMAL)) {
-        if (dataAttribute == IEDMODEL_VAO_XCBR1_Pos_ctlModel) IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR1_Pos, ctlModelVal);
-        else if (dataAttribute == IEDMODEL_VAO_XCBR2_Pos_ctlModel) IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR2_Pos, ctlModelVal);
-        else if (dataAttribute == IEDMODEL_VAO_XCBR3_Pos_ctlModel) IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR3_Pos, ctlModelVal);
-        return DATA_ACCESS_ERROR_SUCCESS;
-    }
-    return DATA_ACCESS_ERROR_OBJECT_VALUE_INVALID;
-}
-
 // Posicao inicial no modelo, antes de o servidor abrir. Assim o primeiro
 // GOOSE de posicoes ja diz a verdade (sem isso, tudo comecaria em 0,
 // "em movimento", e o intertravamento bloquearia as chaves).
 static void posicaoInicial(DataAttribute* stVal, DataAttribute* t, int pos) {
-    MmsValue* v = MmsValue_newBitString(2);
-    MmsValue_setBitStringFromInteger(v, pos);
-    IedServer_updateAttributeValue(iedServer, stVal, v);
+    IedServer_updateDbposValue(iedServer, stVal, (Dbpos) pos);
     IedServer_updateUTCTimeAttributeValue(iedServer, t, Hal_getTimeInMs());
-    MmsValue_delete(v);
 }
 
 int main(int argc, char** argv) {
@@ -772,8 +1011,23 @@ int main(int argc, char** argv) {
         fitaOk = true;
         fitaApaga();
         LOG_PRINT("[FITA] Inicializada em GPIO%d (PWM), %d pixels.\n", FITA_GPIO, FITA_COUNT);
-        LOG_PRINT("[FITA] Pulso de medicao continuo ativo.\n");
+        LOG_PRINT("[FITA] Fibra roxa com SV (branco), GOOSE (amarelo) e trip (vermelho).\n");
+        if (FITA2_COUNT > 0)
+            LOG_PRINT("[FITA 2] Cobre com medidas e comandos em GPIO%d (fisico 33), %d pixels.\n", FITA2_GPIO, FITA2_COUNT);
     }
+
+    // Fita 3 (SPI). Se falhar, as outras continuam.
+    if (FITA3_COUNT > 0) {
+        ret = ws2811_init(&fita3);
+        if (ret != WS2811_SUCCESS) {
+            LOG_PRINT("[FITA 3] ws2811_init FALHOU: %s\n", ws2811_get_return_t_str(ret));
+            LOG_PRINT("[FITA 3] O SPI esta ligado? Confira com: ls /dev/spidev0.0\n");
+        } else {
+            fita3Ok = true;
+            LOG_PRINT("[FITA 3] Cobre com medidas e comandos em GPIO%d (fisico 19, SPI), %d pixels.\n", FITA3_GPIO, FITA3_COUNT);
+        }
+    }
+    fitaApaga();
 
     int dev_null = open("/dev/null", O_WRONLY);
     if (dev_null != -1) dup2(dev_null, STDOUT_FILENO);
@@ -796,22 +1050,11 @@ int main(int argc, char** argv) {
     IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XSWI2_Pos, CONTROL_MODEL_STATUS_ONLY);
     IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XSWI3_Pos, CONTROL_MODEL_STATUS_ONLY);
 
-    // Disjuntores: comando direto do supervisorio, como antes
-    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR1_Pos, CONTROL_MODEL_DIRECT_NORMAL);
-    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR2_Pos, CONTROL_MODEL_DIRECT_NORMAL);
-    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR3_Pos, CONTROL_MODEL_DIRECT_NORMAL);
-
-    IedServer_setControlHandler(iedServer, IEDMODEL_VAO_XCBR1_Pos, (ControlHandler) controlHandlerForBinaryOutput, IEDMODEL_VAO_XCBR1_Pos);
-    IedServer_setPerformCheckHandler(iedServer, IEDMODEL_VAO_XCBR1_Pos, checkHandler, IEDMODEL_VAO_XCBR1_Pos);
-    IedServer_handleWriteAccess(iedServer, IEDMODEL_VAO_XCBR1_Pos_ctlModel, writeAccessHandler, NULL);
-
-    IedServer_setControlHandler(iedServer, IEDMODEL_VAO_XCBR2_Pos, (ControlHandler) controlHandlerForBinaryOutput, IEDMODEL_VAO_XCBR2_Pos);
-    IedServer_setPerformCheckHandler(iedServer, IEDMODEL_VAO_XCBR2_Pos, checkHandler, IEDMODEL_VAO_XCBR2_Pos);
-    IedServer_handleWriteAccess(iedServer, IEDMODEL_VAO_XCBR2_Pos_ctlModel, writeAccessHandler, NULL);
-
-    IedServer_setControlHandler(iedServer, IEDMODEL_VAO_XCBR3_Pos, (ControlHandler) controlHandlerForBinaryOutput, IEDMODEL_VAO_XCBR3_Pos);
-    IedServer_setPerformCheckHandler(iedServer, IEDMODEL_VAO_XCBR3_Pos, checkHandler, IEDMODEL_VAO_XCBR3_Pos);
-    IedServer_handleWriteAccess(iedServer, IEDMODEL_VAO_XCBR3_Pos_ctlModel, writeAccessHandler, NULL);
+    // Disjuntores: tambem so mostram a posicao. O comando do operador vem por
+    // GOOSE do IED de controle (CSWI4-6); o trip, direto da protecao.
+    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR1_Pos, CONTROL_MODEL_STATUS_ONLY);
+    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR2_Pos, CONTROL_MODEL_STATUS_ONLY);
+    IedServer_updateCtlModel(iedServer, IEDMODEL_VAO_XCBR3_Pos, CONTROL_MODEL_STATUS_ONLY);
 
     IedServer_setConnectionIndicationHandler(iedServer, (IedConnectionIndicationHandler) connectionHandler, NULL);
 
@@ -824,13 +1067,14 @@ int main(int argc, char** argv) {
         LOG_PRINT("Falha ao iniciar servidor!\n");
         IedServer_destroy(iedServer);
         if (fitaOk) ws2811_fini(&fita);
+        if (fita3Ok) ws2811_fini(&fita3);
         exit(-1);
     }
 
     // Habilita a publicacao do GOOSE de posicoes (gcbPos)
     IedServer_enableGoosePublishing(iedServer);
 
-    // Assinaturas: trip e comandos das chaves, os dois vindos do EmpElas_PROT
+    // Assinaturas: trip e comandos (chaves e disjuntores), os dois vindos do EmpElas_PROT
     gooseReceiver = GooseReceiver_create();
     GooseReceiver_setInterfaceId(gooseReceiver, GOOSE_INTERFACE);
 
@@ -854,18 +1098,18 @@ int main(int argc, char** argv) {
     if (GooseReceiver_isRunning(gooseReceiver)) {
         LOG_PRINT("[GOOSE] Escutando o trip em %s (APPID 0x%04X). Abre: %s.\n",
                   GOOSE_INTERFACE, GOOSE_TRIP_APPID, DJ_TRIP_NOME);
-        LOG_PRINT("[GOOSE] Escutando os comandos das chaves em %s (APPID 0x%04X).\n",
+        LOG_PRINT("[GOOSE] Escutando os comandos (chaves e disjuntores) em %s (APPID 0x%04X).\n",
                   GOOSE_INTERFACE, GOOSE_CMD_APPID);
     }
     else
         LOG_PRINT("[GOOSE] ERRO: receptor nao iniciou. Confira se %s existe e se rodou com sudo.\n",
                   GOOSE_INTERFACE);
     LOG_PRINT("[STATUS] Servos: canais %d, %d e %d do PCA9685 | LEDs D1-D3 | Fita GPIO%d (%d px)\n", SERVO1_CH, SERVO2_CH, SERVO3_CH, FITA_GPIO, FITA_COUNT);
-    LOG_PRINT("[STATUS] Chaves fechadas, disjuntores abertos. Chaves so por GOOSE; disjuntores pelo SCADA.\n");
+    LOG_PRINT("[STATUS] Chaves fechadas, disjuntores abertos. Comandos so por GOOSE do IED de controle (CSWI1-6).\n");
     LOG_PRINT("[STATUS] Rodando na porta %d.\n", tcpPort);
 
     running = 1;
-    if (fitaOk) {
+    if (fitaOk || fita3Ok) {
         Thread fitaThread = Thread_create((ThreadExecutionFunction)fita_thread, NULL, true);
         Thread_start(fitaThread);
     }
@@ -894,10 +1138,9 @@ int main(int argc, char** argv) {
     digitalWrite(LED_D2_VERDE, LOW); digitalWrite(LED_D2_VERM, LOW);
     digitalWrite(LED_D3_VERDE, LOW); digitalWrite(LED_D3_VERM, LOW);
     Thread_sleep(300);                          // a fita termina o quadro em curso
-    if (fitaOk) {
-        fitaApaga();
-        ws2811_fini(&fita);
-    }
+    fitaApaga();
+    if (fitaOk) ws2811_fini(&fita);
+    if (fita3Ok) ws2811_fini(&fita3);
 
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);

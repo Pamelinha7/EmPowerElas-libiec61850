@@ -18,27 +18,37 @@ abstrato vira visível.
 
 ## O que a maquete faz
 
-- **Chaves seccionadoras (XSWI1-3):** três servos motores que abrem e fecham
-  sob comando do SCADA.
-- **Disjuntores (XCBR1-3):** seis LEDs (verde = fechado, vermelho = aberto).
-- **Medição (MMXU):** correntes e tensões do TC/TP exibidas em displays LCD.
-- **Fibra óptica (comunicação):** fita LED endereçável WS2811 com um pulso
-  contínuo de "medição" e um rastro rápido a cada comando de manobra.
-- **Áudio:** som contínuo representando o transformador.
+- **Merging unit (MU):** simula o TC e o TP da linha e publica as medidas em
+  **SV** (IEC 61850-9-2LE, 4800 amostras por segundo). Um botão na maquete
+  derruba uma árvore na linha e cria uma falta na fase A.
+- **Proteção e controle (PROT):** recebe o SV, mostra correntes e tensões em
+  dois LCDs, faz a proteção de sobrecorrente instantânea (**PIOC**, função 50)
+  e manda o trip por **GOOSE**. Também é o IED de controle: o operador comanda
+  chaves e disjuntores no **CSWI1-6**, e o intertravamento (**CILO1-6**) decide
+  se a manobra pode.
+- **Pátio (CTRL):** três servos movem as chaves seccionadoras (XSWI1-3), seis
+  LEDs mostram os disjuntores (XCBR1-3; vermelho = fechado, verde = aberto) e
+  fitas de LED mostram as mensagens na fibra e no cobre.
+- **Supervisório web e gêmeo 3D:** rodam na CTRL e abrem pelo Wi-Fi da
+  maquete. O gêmeo só mostra a maquete, nunca manda comando.
+- **Áudio:** zumbido do transformador enquanto há vão energizado.
 
-Tudo é comandado por um cliente SCADA (**Elipse E3**) via protocolo
-**IEC 61850 (MMS, porta 102)**, falando com servidores escritos em C sobre a
+O operador pode usar o **Elipse E3** ou o supervisório web. Os dois falam
+**IEC 61850 (MMS, porta 102)** com servidores escritos em C sobre a
 biblioteca **libiec61850**.
 
-## Arquitetura (2 Raspberry Pis)
+## Arquitetura (3 Raspberry Pis)
 
-| Pi | Pasta | Função | Componentes |
-|----|-------|--------|-------------|
-| **Pi 1** | `empelas_prot` | Medição / proteção | 2 LCDs 1602 (TC/TP), áudio (PAM8403 + alto-falante) |
-| **Pi 2** | `empelas_ctrl` | Controle do vão | Servos (PCA9685), 6 LEDs (disjuntores), fita WS2811 (fibra) |
+| Pi | Pasta | Cabo (switch) | Função |
+|----|-------|---------------|--------|
+| **MU** | `empelas_mu` | 192.168.10.103 | SV, botão da falta |
+| **PROT** | `empelas_prot` | 192.168.10.101 | medição, proteção, controle (CSWI/CILO), LCDs, áudio, relógio da maquete |
+| **CTRL** | `empelas_ctrl` | 192.168.10.100 | servos, LEDs, fitas; supervisório e gêmeo (`tablet_scada`) |
 
-Cada Pi roda seu próprio servidor IEC 61850, com IP próprio na porta 102. O
-Elipse conecta-se às duas.
+As Pis ficam num switch só delas. O roteador cuida só do Wi-Fi, sem cabo para
+o switch, para o SV não chegar ao Wi-Fi. Detalhes em
+**[ETAPA_REDE.md](ETAPA_REDE.md)**. As mudanças para o formato da norma
+(PIOC, CSWI4-6, posição Dbpos) estão em **[ETAPA_NORMA.md](ETAPA_NORMA.md)**.
 
 ## Controle dos servos — PCA9685
 
@@ -86,7 +96,7 @@ cd empelas_ctrl && sudo ./empelas_ctrl
 
 ```
 EmPowerElas-libiec61850/
-├── empelas_ctrl/          # Pi 2 — controle (servos, LEDs, fita)
+├── empelas_ctrl/          # CTRL — pátio (servos, LEDs, fitas)
 │   ├── server_ctrl.c      # servidor IEC 61850 principal
 │   ├── static_model.c/.h  # modelo IEC gerado (já vem pronto)
 │   ├── empelas_ctrl.icd   # descrição SCL do modelo
@@ -94,11 +104,16 @@ EmPowerElas-libiec61850/
 │   ├── genmodel.jar       # regera o static_model a partir do .icd
 │   ├── libws2811.a + headers   # biblioteca da fita WS2811
 │   └── testes/            # programas de diagnóstico (servo, pinos, fita)
-├── empelas_prot/          # Pi 1 — medição / proteção
+├── empelas_prot/          # PROT — medição, proteção e controle
+├── empelas_mu/            # MU — merging unit (SV) e botão da falta
+├── tablet_scada/          # supervisório web e gêmeo 3D (roda na CTRL)
+├── servicos/              # serviços do systemd e arquivos do relógio
 ├── genmodel.jar
 ├── simulador_json.py
 ├── setup.sh               # instalação automática numa Pi limpa
 ├── INSTALACAO.md          # guia detalhado de instalação e ligações
+├── ETAPA_NORMA.md         # PIOC, CSWI4-6 e posição no formato da norma
+├── ETAPA_REDE.md          # switch, Wi-Fi, serviços e relógio
 └── README.md
 ```
 

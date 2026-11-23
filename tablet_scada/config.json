@@ -1,0 +1,9 @@
+{
+  "porta_web": 8080,
+  "intervalo_ms": 400,
+  "ieds": {
+    "CTRL": { "nome": "Pi do servo (EmpElas_CTRL)",      "ip": "192.168.10.100", "porta": 102 },
+    "PROT": { "nome": "Pi das telinhas (EmpElas_PROT)",  "ip": "192.168.10.101", "porta": 102 },
+    "MU":   { "nome": "Merging unit (EmpElas_MU)",       "ip": "192.168.10.103", "porta": 102 }
+  }
+}

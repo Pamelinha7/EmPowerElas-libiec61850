@@ -6,7 +6,7 @@
  * Sampled Values (4800 amostras por segundo) e, a cada ciclo de 60 Hz
  * (80 amostras):
  *   - calcula o valor eficaz (RMS) das correntes e tensoes das tres fases;
- *   - roda a protecao de sobrecorrente de fase (PTOC1).
+ *   - roda a protecao de sobrecorrente de fase instantanea (PIOC1, funcao ANSI 50).
  * Quando a protecao atua, o trip (PTRC1.Tr) e publicado por GOOSE para o IED
  * de controle de vao (EmpElas_CTRL), que abre o disjuntor. O trip e
  * tripolar: o disjuntor abre as tres fases juntas, qualquer que seja a fase
@@ -14,6 +14,7 @@
  *
  * Displays (LCD 1602):
  *   LCD1 linha 1: estado (CORRENTE (A) / TRIP <fases> ->GOOSE / SEM SINAL DA MU)
+ *                 depois do trip: ULTIMO TRIP: <fases>, ate o DJ1 fechar de novo
  *   LCD1 linha 2: correntes das fases A, B e C (A)
  *   LCD2 linha 1: TENSAO FASE (kV)
  *   LCD2 linha 2: tensoes das fases A, B e C (kV)
@@ -26,19 +27,26 @@
  * Nao existe mais botao de falta aqui: a falta acontece na "linha", que e a
  * merging unit. Este IED so mede e decide, como um rele real.
  *
- * IED DE CONTROLE DAS CHAVES (CSWI1-3 e CILO1-3)
- * O operador manda abrir ou fechar a chave N no CSWIn (supervisorio, MMS).
- * Antes de aceitar, o CILOn confere o intertravamento: a chave N so abre ou
- * fecha com o disjuntor N ABERTO (a seccionadora nao foi feita para cortar
- * corrente). Liberado, o comando sai por GOOSE (gcbCmd: CSWIn.OpOpn ou
- * CSWIn.OpCls) para a Pi do servo. A Pi do servo publica de volta, tambem
- * por GOOSE (gcbPos), a posicao dos disjuntores e das chaves: e dai que o
+ * IED DE CONTROLE DO VAO
+ *   chaves 1-3:      CSWI1-3 (comando) e CILO1-3 (intertravamento)
+ *   disjuntores 1-3: CSWI4-6 (comando) e CILO4-6 (intertravamento)
+ * O operador manda abrir ou fechar no CSWIn.Pos (supervisorio, MMS), no
+ * formato da norma: ctlVal booleano, true = fechar, false = abrir. Antes de
+ * aceitar, o CILOn confere o intertravamento:
+ *   - a chave N so abre ou fecha com o disjuntor N ABERTO (a seccionadora
+ *     nao foi feita para cortar corrente);
+ *   - o disjuntor N abre sempre; so fecha com a chave N parada (nao no meio
+ *     do caminho), e o disjuntor 1 nao fecha com o trip ativo.
+ * Liberado, o comando sai por GOOSE (gcbCmd: CSWIn.OpOpn ou CSWIn.OpCls)
+ * para a Pi do servo. A Pi do servo publica de volta, tambem por GOOSE
+ * (gcbPos), a posicao dos disjuntores e das chaves: e dai que o
  * intertravamento sabe o que esta aberto, e e assim que o comando e
- * confirmado. Sem esse GOOSE, as posicoes ficam desconhecidas e todas as
- * chaves ficam bloqueadas.
+ * confirmado. Sem esse GOOSE, as posicoes ficam desconhecidas e todos os
+ * comandos ficam bloqueados. O trip nao passa por aqui: vai direto do PTRC
+ * para o disjuntor 1 (gcbTrip).
  *
- * Avisos das chaves aparecem por alguns segundos no LCD2 (no lugar das
- * tensoes): CH1 BLOQUEADA / ABRA O DJ1 ANTES, CH1 ABRINDO..., CH1 ABERTA.
+ * Avisos dos comandos aparecem por alguns segundos no LCD2 (no lugar das
+ * tensoes): CH1 BLOQUEADA / ABRA O DJ1 ANTES, DJ1 FECHANDO..., CH1 ABERTA.
  *
  * Compilar e rodar nesta Pi:
  *   make modelo   (sempre que o .icd mudar)
@@ -109,9 +117,9 @@ static uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
 #define SV_TIMEOUT_MS       100
 
 // ================= PROTECAO ================================
-#define PTOC_PARTIDA        300.0   // ajuste da sobrecorrente de fase (A)
+#define PIOC_PARTIDA        300.0   // ajuste da sobrecorrente instantanea de fase (A)
 
-// ================= CHAVES (CSWI + CILO) =====================
+// ======= CONTROLE: CHAVES E DISJUNTORES (CSWI + CILO) ========
 // Posicoes vindas da Pi do servo. Valores IGUAIS aos do empelas_ctrl.icd.
 // O dsPos traz, nesta ordem: XCBR1, XCBR2, XCBR3, XSWI1, XSWI2, XSWI3.
 #define GOOSE_POS_REF       "EmpElas_CTRLVAO/LLN0$GO$gcbPos"
@@ -127,8 +135,9 @@ static uint8_t GOOSE_POS_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x01, 0x00, 0x02};
 // Quanto tempo um aviso das chaves fica no LCD2
 #define AVISO_MS            4000
 
-// Posicao de ponto duplo, no mesmo formato da Pi do servo e do supervisorio
-// (MmsValue_getBitStringAsInteger)
+// Posicao de ponto duplo (Dbpos), no formato da norma, lida com
+// Dbpos_fromMmsValue e escrita com IedServer_updateDbposValue. Os numeros
+// sao os mesmos da biblioteca (DBPOS_OFF = 1, DBPOS_ON = 2).
 #define POS_INTERMEDIARIA   0       // em movimento
 #define POS_ABERTA          1
 #define POS_FECHADA         2
@@ -139,6 +148,8 @@ static uint8_t GOOSE_POS_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x01, 0x00, 0x02};
 #define BLOQ_SEM_POSICOES   1       // sem GOOSE da Pi do servo
 #define BLOQ_DJ_FECHADO     2       // disjuntor do vao fechado
 #define BLOQ_DJ_INDEFINIDO  3       // disjuntor em movimento ou invalido
+#define BLOQ_CH_MOVENDO     4       // chave do vao em movimento (o disjuntor nao fecha)
+#define BLOQ_TRIP           5       // trip ativo (o DJ1 nao fecha)
 
 // ============================================================
 
@@ -231,6 +242,10 @@ static volatile uint32_t svCiclos = 0, svPerdidas = 0, svRepetidas = 0, svOutros
 // Estado da protecao: fases em sobrecorrente (bit 0 = A, 1 = B, 2 = C)
 static pthread_mutex_t mtxProt = PTHREAD_MUTEX_INITIALIZER;
 static volatile int fasesAtuadas = 0;
+// Fases do ultimo trip, guardadas ate o DJ1 fechar de novo. Com o DJ1 aberto
+// a corrente vai a zero e o trip cai em poucos milissegundos; esta memoria
+// deixa a indicacao no LCD1, como o LED de trip de um rele de verdade.
+static volatile int tripMemo = 0;
 
 static int64_t agoraMs(void) {
     struct timespec t;
@@ -254,7 +269,8 @@ static void escreverBool(DataAttribute* da, bool valor, bool semAviso) {
 }
 
 // ----------------------------------------------------------------
-// Protecao de sobrecorrente de fase, sem atraso (funcao ANSI 50).
+// Protecao de sobrecorrente de fase, sem atraso (funcao ANSI 50, no
+// IEC 61850 e o PIOC; o PTOC seria a temporizada, funcao 51).
 //
 // Roda a cada ciclo, com o RMS das tres fases. So escreve no modelo quando
 // o estado muda: o PTRC1.Tr.general esta no conjunto de dados do GOOSE, e
@@ -266,9 +282,9 @@ static void escreverBool(DataAttribute* da, bool valor, bool semAviso) {
 static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t ts) {
     int fases = 0;
     if (medicaoValida) {
-        if (iFase[0] > PTOC_PARTIDA) fases |= 1;
-        if (iFase[1] > PTOC_PARTIDA) fases |= 2;
-        if (iFase[2] > PTOC_PARTIDA) fases |= 4;
+        if (iFase[0] > PIOC_PARTIDA) fases |= 1;
+        if (iFase[1] > PIOC_PARTIDA) fases |= 2;
+        if (iFase[2] > PIOC_PARTIDA) fases |= 4;
     }
 
     pthread_mutex_lock(&mtxProt);
@@ -278,6 +294,7 @@ static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t 
         return;
     }
     fasesAtuadas = fases;
+    if (fases) tripMemo |= fases;
     bool geral = (fases != 0);
     bool geralAntes = (antes != 0);
 
@@ -285,8 +302,8 @@ static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t 
     // Horarios primeiro. O relatorio de eventos copia o dado inteiro (valor,
     // qualidade e horario) quando o valor muda, entao o horario ja precisa
     // estar certo nessa hora.
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_t, ts);
-    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_t, ts);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PIOC1_Str_t, ts);
+    IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PIOC1_Op_t, ts);
     if (geral != geralAntes)
         IedServer_updateUTCTimeAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_t, ts);
 
@@ -294,14 +311,14 @@ static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t 
     // "general" tambem muda, as fases sao gravadas sem avisar o relatorio:
     // quem avisa e o general, uma vez so, com as fases ja certas.
     bool soGeral = (geral != geralAntes);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsA, (fases & 1) != 0, soGeral);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsB, (fases & 2) != 0, soGeral);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Str_phsC, (fases & 4) != 0, soGeral);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Str_general, geral);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsA, (fases & 1) != 0, soGeral);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsB, (fases & 2) != 0, soGeral);
-    escreverBool(IEDMODEL_MEDPROT_PTOC1_Op_phsC, (fases & 4) != 0, soGeral);
-    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTOC1_Op_general, geral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Str_phsA, (fases & 1) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Str_phsB, (fases & 2) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Str_phsC, (fases & 4) != 0, soGeral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PIOC1_Str_general, geral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Op_phsA, (fases & 1) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Op_phsB, (fases & 2) != 0, soGeral);
+    escreverBool(IEDMODEL_MEDPROT_PIOC1_Op_phsC, (fases & 4) != 0, soGeral);
+    IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PIOC1_Op_general, geral);
     // Trip tripolar. Esta e a escrita que dispara o GOOSE (PTRC1.Tr.general esta no dsTrip)
     if (geral != geralAntes)
         IedServer_updateBooleanAttributeValue(iedServer, IEDMODEL_MEDPROT_PTRC1_Tr_general, geral);
@@ -313,7 +330,7 @@ static void avaliarProtecao(const double iFase[3], bool medicaoValida, uint64_t 
     if (geral && !geralAntes) {
         LOG_PRINT("--------------------------------------------------\n");
         LOG_PRINT("[PROTECAO] Sobrecorrente na fase %s (IA %.1f  IB %.1f  IC %.1f A; ajuste %.0f A).\n",
-                  f, iFase[0], iFase[1], iFase[2], PTOC_PARTIDA);
+                  f, iFase[0], iFase[1], iFase[2], PIOC_PARTIDA);
         LOG_PRINT("           TRIP publicado por GOOSE.\n");
         LOG_PRINT("--------------------------------------------------\n");
     } else if (geral) {
@@ -449,18 +466,30 @@ static void publicarMedicoes(const Medidas* m, bool valida, uint64_t ts) {
 }
 
 // ================================================================
-// CHAVES: comando (CSWI1-3) e intertravamento (CILO1-3)
+// CONTROLE DO VAO
+//   chaves:      CSWI1-3 (comando) + CILO1-3 (intertravamento)
+//   disjuntores: CSWI4-6 (comando) + CILO4-6 (intertravamento)
+//
+// Os 6 equipamentos ficam numa lista so: e = 0, 1, 2 sao as chaves 1-3 e
+// e = 3, 4, 5 sao os disjuntores 1-3. O vao de cada um e e % 3.
 // ================================================================
+
+#define N_EQUIP   6
+#define EH_DJ(e)  ((e) >= 3)
+#define VAO(e)    ((e) % 3)
 
 // Estado vindo do patio e comandos em andamento
 static pthread_mutex_t mtxChaves = PTHREAD_MUTEX_INITIALIZER;
 static int posDj[3] = {POS_INVALIDA, POS_INVALIDA, POS_INVALIDA};   // disjuntores 1, 2 e 3
 static int posCh[3] = {POS_INVALIDA, POS_INVALIDA, POS_INVALIDA};   // chaves 1, 2 e 3
 static int64_t ultimoPosMs = 0;     // ultimo GOOSE de posicoes (relogio monotonico)
-static int pedido[3];               // aceito pelo operador, ainda nao publicado (0, POS_ABERTA, POS_FECHADA)
-static int emCurso[3];              // publicado no GOOSE, esperando a chave chegar la
+static int pedido[N_EQUIP];         // aceito pelo operador, ainda nao publicado (0, POS_ABERTA, POS_FECHADA)
+static int emCurso[N_EQUIP];        // publicado no GOOSE, esperando o equipamento chegar la
+static bool chegou[N_EQUIP];        // o GOOSE ja mostrou o equipamento na posicao pedida
+                                    // (um disjuntor fechado em cima da falta abre de novo
+                                    // em milissegundos: a confirmacao nao pode se perder)
 
-// Numero da chave (0, 1, 2) como a letra '1', '2', '3' para o LCD
+// Numero do vao (0, 1, 2) como a letra '1', '2', '3' para o LCD
 #define DIGITO(n) ((char) ('1' + (n)))
 
 // Aviso temporario no LCD2
@@ -488,23 +517,59 @@ static const char* textoPos(int p, bool chave) {
     }
 }
 
+// Nomes do equipamento: "CH1"/"DJ1" (LCD) e "chave 1"/"disjuntor 1" (terminal)
+static const char* siglaEquip(int e) {
+    static const char* s[N_EQUIP] = { "CH1", "CH2", "CH3", "DJ1", "DJ2", "DJ3" };
+    return s[e];
+}
+static const char* nomeEquip(int e) {
+    static const char* s[N_EQUIP] = { "chave 1", "chave 2", "chave 3", "disjuntor 1", "disjuntor 2", "disjuntor 3" };
+    return s[e];
+}
+
+// Artigos para as frases do terminal: "a chave 1" / "o disjuntor 1"
+#define ART(e)  (EH_DJ(e) ? "o" : "a")
+#define DE(e)   (EH_DJ(e) ? "do" : "da")
+
 // As posicoes valem enquanto o GOOSE da Pi do servo continuar chegando.
 // Chamar com mtxChaves travado.
 static bool posicoesOk(int64_t agora) {
     return ultimoPosMs > 0 && (agora - ultimoPosMs) < POS_TIMEOUT_MS;
 }
 
-// A regra do intertravamento (CILO): a chave N so abre ou fecha com o
-// disjuntor N aberto. Sem saber a posicao do disjuntor, nao arrisca.
-static int intertravamento(bool posOk, int dj) {
+// Posicao atual do equipamento e. Chamar com mtxChaves travado.
+static int posEquip(int e) {
+    return EH_DJ(e) ? posDj[VAO(e)] : posCh[VAO(e)];
+}
+
+// O trip esta ativo? (fasesAtuadas e da protecao, la em cima)
+static bool tripAtivo(void) {
+    return fasesAtuadas != 0;
+}
+
+// As regras do intertravamento (CILO). 'alvo' = POS_ABERTA ou POS_FECHADA.
+//   Chave N (CILO1-3): so abre ou fecha com o disjuntor N aberto. A
+//     seccionadora nao foi feita para cortar corrente.
+//   Disjuntor N (CILO4-6): abre sempre. So fecha se a chave N estiver
+//     parada (aberta ou fechada, nao no meio do caminho). O disjuntor 1
+//     tambem nao fecha enquanto o trip estiver ativo.
+// Sem saber as posicoes, nao arrisca: bloqueia tudo.
+static int intertravamento(int e, int alvo, bool posOk, int dj, int ch, bool trip) {
     if (!posOk) return BLOQ_SEM_POSICOES;
-    if (dj == POS_FECHADA) return BLOQ_DJ_FECHADO;
-    if (dj != POS_ABERTA) return BLOQ_DJ_INDEFINIDO;
+    if (!EH_DJ(e)) {
+        if (dj == POS_FECHADA) return BLOQ_DJ_FECHADO;
+        if (dj != POS_ABERTA) return BLOQ_DJ_INDEFINIDO;
+        return LIBERADA;
+    }
+    if (alvo == POS_ABERTA) return LIBERADA;
+    if (ch != POS_ABERTA && ch != POS_FECHADA) return BLOQ_CH_MOVENDO;
+    if (VAO(e) == 0 && trip) return BLOQ_TRIP;
     return LIBERADA;
 }
 
 // Explica um bloqueio: uma frase para o terminal e 16 letras para o LCD
-static void textoBloqueio(int motivo, int n, char* frase, size_t nFrase, char* lcd, size_t nLcd) {
+static void textoBloqueio(int motivo, int e, char* frase, size_t nFrase, char* lcd, size_t nLcd) {
+    int n = VAO(e);
     switch (motivo) {
     case BLOQ_SEM_POSICOES:
         snprintf(frase, nFrase, "nao chegam as posicoes da Pi do servo (GOOSE gcbPos)");
@@ -514,6 +579,14 @@ static void textoBloqueio(int motivo, int n, char* frase, size_t nFrase, char* l
         snprintf(frase, nFrase, "o disjuntor %d esta fechado. Abra o disjuntor %d antes", n + 1, n + 1);
         snprintf(lcd, nLcd, "ABRA O DJ%c ANTES", DIGITO(n));
         break;
+    case BLOQ_CH_MOVENDO:
+        snprintf(frase, nFrase, "a chave %d esta em movimento ou em posicao indefinida", n + 1);
+        snprintf(lcd, nLcd, "CH%c EM MOVIMENTO", DIGITO(n));
+        break;
+    case BLOQ_TRIP:
+        snprintf(frase, nFrase, "o trip da protecao esta ativo: a falta ainda esta sendo alimentada");
+        snprintf(lcd, nLcd, "TRIP ATIVO");
+        break;
     default:
         snprintf(frase, nFrase, "o disjuntor %d esta em posicao indefinida", n + 1);
         snprintf(lcd, nLcd, "DJ%c INDEFINIDO", DIGITO(n));
@@ -521,22 +594,19 @@ static void textoBloqueio(int motivo, int n, char* frase, size_t nFrase, char* l
     }
 }
 
-// Valor do comando: 1 = abrir, 2 = fechar (igual aos botoes do Elipse)
+// Valor do comando, no formato da norma (DPC): ctlVal booleano,
+// true = fechar, false = abrir.
 static int alvoDoComando(MmsValue* v) {
     if (v != NULL && MmsValue_getType(v) == MMS_STRUCTURE) v = MmsValue_getElement(v, 0);
-    if (v == NULL) return -1;
-    switch (MmsValue_getType(v)) {
-    case MMS_BIT_STRING: return MmsValue_getBitStringAsInteger(v);
-    case MMS_BOOLEAN:    return MmsValue_getBoolean(v) ? POS_FECHADA : POS_ABERTA;
-    case MMS_INTEGER:
-    case MMS_UNSIGNED:   return MmsValue_toInt32(v);
-    default:             return -1;
-    }
+    if (v == NULL || MmsValue_getType(v) != MMS_BOOLEAN) return -1;
+    return MmsValue_getBoolean(v) ? POS_FECHADA : POS_ABERTA;
 }
 
 // ----------------------------------------------------------------
 // GOOSE de posicoes da Pi do servo (gcbPos). Chamada a cada mensagem,
 // inclusive as repeticoes: cada uma renova o "estou vivo" das posicoes.
+// As posicoes vem no formato da norma (Dbpos) e sao lidas com a funcao da
+// propria biblioteca: 01 = aberto, 10 = fechado, 00 = em movimento.
 // ----------------------------------------------------------------
 // Diagnostico (sudo DEBUG_GOOSE=1 ./empelas_prot): conta o que chega no
 // receptor de GOOSE deste programa e mostra a cada 5 s.
@@ -567,15 +637,21 @@ static void goosePosListener(GooseSubscriber sub, void* parameter) {
             stNumAvisado = stNum;
             return;
         }
-        p[k] = MmsValue_getBitStringAsInteger(v);
+        p[k] = (int) Dbpos_fromMmsValue(v);
     }
 
     pthread_mutex_lock(&mtxChaves);
+    if (p[0] == POS_FECHADA && posDj[0] != POS_FECHADA && tripMemo) {
+        tripMemo = 0;
+        LOG_PRINT("[PROTECAO] DJ1 fechado de novo: indicacao do ultimo trip apagada do LCD1.\n");
+    }
     bool mudou = (ultimoPosMs == 0) || memcmp(posDj, p, sizeof(posDj)) != 0
                                     || memcmp(posCh, p + 3, sizeof(posCh)) != 0;
     memcpy(posDj, p, sizeof(posDj));
     memcpy(posCh, p + 3, sizeof(posCh));
     ultimoPosMs = agoraMs();
+    for (int e = 0; e < N_EQUIP; e++)
+        if (emCurso[e] && posEquip(e) == emCurso[e]) chegou[e] = true;
     pthread_mutex_unlock(&mtxChaves);
 
     if (mudou)
@@ -585,62 +661,63 @@ static void goosePosListener(GooseSubscriber sub, void* parameter) {
 }
 
 // ----------------------------------------------------------------
-// Antes de aceitar um comando de chave (CSWIn.Pos), confere:
-//   1. se a chave ja nao esta manobrando;
-//   2. o intertravamento (CILOn): disjuntor N aberto;
-//   3. se a chave ja nao esta na posicao pedida.
+// Antes de aceitar um comando (CSWIn.Pos), confere:
+//   1. se o equipamento ja nao esta manobrando;
+//   2. o intertravamento (CILOn);
+//   3. se ele ja nao esta na posicao pedida.
 // Recusado, o supervisorio recebe o erro e o motivo (addCause), o terminal
 // explica e o LCD2 mostra o aviso.
 // ----------------------------------------------------------------
-static CheckHandlerResult checkChave(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
-    int n = (int) (intptr_t) parameter;
+static CheckHandlerResult checkComando(ControlAction action, void* parameter, MmsValue* ctlVal, bool test, bool interlockCheck) {
+    int e = (int) (intptr_t) parameter;
     int alvo = alvoDoComando(ctlVal);
     if (alvo != POS_ABERTA && alvo != POS_FECHADA) {
-        LOG_PRINT("[CHAVE] Comando da chave %d com valor %d: use 1 (abrir) ou 2 (fechar).\n", n + 1, alvo);
+        LOG_PRINT("[COMANDO] Comando %s %s com valor invalido: use ctlVal booleano (true = fechar, false = abrir).\n", DE(e), nomeEquip(e));
         return CONTROL_VALUE_INVALID;
     }
+    bool chave = !EH_DJ(e);
     const char* acao = (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR";
     char l1[17], l2[17];
 
     pthread_mutex_lock(&mtxChaves);
     bool posOk = posicoesOk(agoraMs());
-    int dj = posDj[n], ch = posCh[n];
-    bool ocupada = pedido[n] || emCurso[n] || (posOk && ch == POS_INTERMEDIARIA);
+    int dj = posDj[VAO(e)], ch = posCh[VAO(e)], atual = posEquip(e);
+    bool ocupada = pedido[e] || emCurso[e] || (posOk && atual == POS_INTERMEDIARIA);
     pthread_mutex_unlock(&mtxChaves);
 
     if (ocupada) {
-        LOG_PRINT("[CHAVE] Pedido de %s a chave %d recusado: ela ainda esta manobrando.\n", acao, n + 1);
+        LOG_PRINT("[COMANDO] Pedido de %s %s %s recusado: ainda esta manobrando.\n", acao, ART(e), nomeEquip(e));
         ControlAction_setAddCause(action, ADD_CAUSE_COMMAND_ALREADY_IN_EXECUTION);
         return CONTROL_TEMPORARILY_UNAVAILABLE;
     }
 
-    int motivo = intertravamento(posOk, dj);
+    int motivo = intertravamento(e, alvo, posOk, dj, ch, tripAtivo());
     if (motivo != LIBERADA) {
         char frase[120];
-        textoBloqueio(motivo, n, frase, sizeof(frase), l2, sizeof(l2));
-        snprintf(l1, sizeof(l1), "CH%c BLOQUEADA", DIGITO(n));
+        textoBloqueio(motivo, e, frase, sizeof(frase), l2, sizeof(l2));
+        snprintf(l1, sizeof(l1), "%s %s", siglaEquip(e), chave ? "BLOQUEADA" : "BLOQUEADO");
         avisoLcd(l1, l2);
         LOG_PRINT("--------------------------------------------------\n");
-        LOG_PRINT("[INTERTRAVAMENTO] Pedido de %s a chave %d RECUSADO: %s.\n", acao, n + 1, frase);
+        LOG_PRINT("[INTERTRAVAMENTO] Pedido de %s %s %s RECUSADO: %s.\n", acao, ART(e), nomeEquip(e), frase);
         LOG_PRINT("--------------------------------------------------\n");
         ControlAction_setAddCause(action, ADD_CAUSE_BLOCKED_BY_INTERLOCKING);
         return CONTROL_OBJECT_ACCESS_DENIED;
     }
 
-    if (ch == alvo) {
-        snprintf(l1, sizeof(l1), "CH%c JA %s", DIGITO(n), (alvo == POS_ABERTA) ? "ABERTA" : "FECHADA");
+    if (atual == alvo) {
+        snprintf(l1, sizeof(l1), "%s JA %s", siglaEquip(e), (alvo == POS_ABERTA) ? (chave ? "ABERTA" : "ABERTO")
+                                                                               : (chave ? "FECHADA" : "FECHADO"));
         avisoLcd(l1, "NADA A FAZER");
-        LOG_PRINT("[CHAVE] Pedido de %s a chave %d: ela ja esta %s. Nada a fazer.\n", acao, n + 1, textoPos(ch, true));
+        LOG_PRINT("[COMANDO] Pedido de %s %s %s: ja esta %s. Nada a fazer.\n", acao, ART(e), nomeEquip(e), textoPos(atual, chave));
         ControlAction_setAddCause(action, ADD_CAUSE_POSITION_REACHED);
         return CONTROL_OBJECT_ACCESS_DENIED;
     }
-
     return CONTROL_ACCEPTED;
 }
 
-// Comando aceito: deixa o pedido para a thread das chaves publicar no GOOSE.
-static ControlHandlerResult operarChave(ControlAction action, void* parameter, MmsValue* value, bool test) {
-    int n = (int) (intptr_t) parameter;
+// Comando aceito: deixa o pedido para a thread do controle publicar no GOOSE.
+static ControlHandlerResult operarComando(ControlAction action, void* parameter, MmsValue* value, bool test) {
+    int e = (int) (intptr_t) parameter;
     int alvo = alvoDoComando(value);
     if (alvo != POS_ABERTA && alvo != POS_FECHADA) return CONTROL_RESULT_FAILED;
 
@@ -648,65 +725,78 @@ static ControlHandlerResult operarChave(ControlAction action, void* parameter, M
     const char* ip = con ? ClientConnection_getPeerAddress(con) : "desconhecido";
 
     pthread_mutex_lock(&mtxChaves);
-    pedido[n] = alvo;
+    pedido[e] = alvo;
     pthread_mutex_unlock(&mtxChaves);
 
     char l1[17];
-    snprintf(l1, sizeof(l1), "CH%c %s...", DIGITO(n), (alvo == POS_ABERTA) ? "ABRINDO" : "FECHANDO");
+    snprintf(l1, sizeof(l1), "%s %s...", siglaEquip(e), (alvo == POS_ABERTA) ? "ABRINDO" : "FECHANDO");
     avisoLcd(l1, "GOOSE -> PATIO");
     LOG_PRINT("--------------------------------------------------\n");
-    LOG_PRINT("[CHAVE] Operador (%s) pediu %s a chave %d. Intertravamento: liberado (disjuntor %d aberto).\n",
-              ip, (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR", n + 1, n + 1);
+    if (EH_DJ(e))
+        LOG_PRINT("[COMANDO] Operador (%s) pediu %s o disjuntor %d (CSWI%d). Intertravamento: liberado.\n",
+                  ip, (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR", VAO(e) + 1, e + 1);
+    else
+        LOG_PRINT("[COMANDO] Operador (%s) pediu %s a chave %d (CSWI%d). Intertravamento: liberado (disjuntor %d aberto).\n",
+                  ip, (alvo == POS_ABERTA) ? "ABRIR" : "FECHAR", VAO(e) + 1, e + 1, VAO(e) + 1);
     return CONTROL_RESULT_OK;
 }
 
 // ----------------------------------------------------------------
-// Thread das chaves (a cada 20 ms):
-//   - mantem o CILOn (EnaOpn/EnaCls) e o CSWIn.Pos em dia com o patio;
+// Thread do controle (a cada 20 ms):
+//   - mantem os CILO (EnaOpn/EnaCls) e os CSWIn.Pos em dia com o patio;
 //   - publica o comando aceito: liga CSWIn.OpOpn ou OpCls, e o GOOSE sai;
-//   - espera a chave chegar na posicao pedida e desliga o sinal. Se ela
-//     nao chegar em CMD_TIMEOUT_MS, desliga do mesmo jeito e avisa.
+//   - espera o equipamento chegar na posicao pedida e desliga o sinal. Se
+//     ele nao chegar em CMD_TIMEOUT_MS, desliga do mesmo jeito e avisa.
 // ----------------------------------------------------------------
-static DataAttribute* const enaOpn[3]  = { IEDMODEL_MEDPROT_CILO1_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO2_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO3_EnaOpn_stVal };
-static DataAttribute* const enaOpnT[3] = { IEDMODEL_MEDPROT_CILO1_EnaOpn_t, IEDMODEL_MEDPROT_CILO2_EnaOpn_t, IEDMODEL_MEDPROT_CILO3_EnaOpn_t };
-static DataAttribute* const enaCls[3]  = { IEDMODEL_MEDPROT_CILO1_EnaCls_stVal, IEDMODEL_MEDPROT_CILO2_EnaCls_stVal, IEDMODEL_MEDPROT_CILO3_EnaCls_stVal };
-static DataAttribute* const enaClsT[3] = { IEDMODEL_MEDPROT_CILO1_EnaCls_t, IEDMODEL_MEDPROT_CILO2_EnaCls_t, IEDMODEL_MEDPROT_CILO3_EnaCls_t };
-static DataAttribute* const cswiPos[3]  = { IEDMODEL_MEDPROT_CSWI1_Pos_stVal, IEDMODEL_MEDPROT_CSWI2_Pos_stVal, IEDMODEL_MEDPROT_CSWI3_Pos_stVal };
-static DataAttribute* const cswiPosQ[3] = { IEDMODEL_MEDPROT_CSWI1_Pos_q, IEDMODEL_MEDPROT_CSWI2_Pos_q, IEDMODEL_MEDPROT_CSWI3_Pos_q };
-static DataAttribute* const cswiPosT[3] = { IEDMODEL_MEDPROT_CSWI1_Pos_t, IEDMODEL_MEDPROT_CSWI2_Pos_t, IEDMODEL_MEDPROT_CSWI3_Pos_t };
-static DataAttribute* const opOpn[3]  = { IEDMODEL_MEDPROT_CSWI1_OpOpn_general, IEDMODEL_MEDPROT_CSWI2_OpOpn_general, IEDMODEL_MEDPROT_CSWI3_OpOpn_general };
-static DataAttribute* const opOpnT[3] = { IEDMODEL_MEDPROT_CSWI1_OpOpn_t, IEDMODEL_MEDPROT_CSWI2_OpOpn_t, IEDMODEL_MEDPROT_CSWI3_OpOpn_t };
-static DataAttribute* const opCls[3]  = { IEDMODEL_MEDPROT_CSWI1_OpCls_general, IEDMODEL_MEDPROT_CSWI2_OpCls_general, IEDMODEL_MEDPROT_CSWI3_OpCls_general };
-static DataAttribute* const opClsT[3] = { IEDMODEL_MEDPROT_CSWI1_OpCls_t, IEDMODEL_MEDPROT_CSWI2_OpCls_t, IEDMODEL_MEDPROT_CSWI3_OpCls_t };
+static DataAttribute* const enaOpn[N_EQUIP]  = { IEDMODEL_MEDPROT_CILO1_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO2_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO3_EnaOpn_stVal,
+                                                 IEDMODEL_MEDPROT_CILO4_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO5_EnaOpn_stVal, IEDMODEL_MEDPROT_CILO6_EnaOpn_stVal };
+static DataAttribute* const enaOpnT[N_EQUIP] = { IEDMODEL_MEDPROT_CILO1_EnaOpn_t, IEDMODEL_MEDPROT_CILO2_EnaOpn_t, IEDMODEL_MEDPROT_CILO3_EnaOpn_t,
+                                                 IEDMODEL_MEDPROT_CILO4_EnaOpn_t, IEDMODEL_MEDPROT_CILO5_EnaOpn_t, IEDMODEL_MEDPROT_CILO6_EnaOpn_t };
+static DataAttribute* const enaCls[N_EQUIP]  = { IEDMODEL_MEDPROT_CILO1_EnaCls_stVal, IEDMODEL_MEDPROT_CILO2_EnaCls_stVal, IEDMODEL_MEDPROT_CILO3_EnaCls_stVal,
+                                                 IEDMODEL_MEDPROT_CILO4_EnaCls_stVal, IEDMODEL_MEDPROT_CILO5_EnaCls_stVal, IEDMODEL_MEDPROT_CILO6_EnaCls_stVal };
+static DataAttribute* const enaClsT[N_EQUIP] = { IEDMODEL_MEDPROT_CILO1_EnaCls_t, IEDMODEL_MEDPROT_CILO2_EnaCls_t, IEDMODEL_MEDPROT_CILO3_EnaCls_t,
+                                                 IEDMODEL_MEDPROT_CILO4_EnaCls_t, IEDMODEL_MEDPROT_CILO5_EnaCls_t, IEDMODEL_MEDPROT_CILO6_EnaCls_t };
+static DataAttribute* const cswiPos[N_EQUIP]  = { IEDMODEL_MEDPROT_CSWI1_Pos_stVal, IEDMODEL_MEDPROT_CSWI2_Pos_stVal, IEDMODEL_MEDPROT_CSWI3_Pos_stVal,
+                                                  IEDMODEL_MEDPROT_CSWI4_Pos_stVal, IEDMODEL_MEDPROT_CSWI5_Pos_stVal, IEDMODEL_MEDPROT_CSWI6_Pos_stVal };
+static DataAttribute* const cswiPosQ[N_EQUIP] = { IEDMODEL_MEDPROT_CSWI1_Pos_q, IEDMODEL_MEDPROT_CSWI2_Pos_q, IEDMODEL_MEDPROT_CSWI3_Pos_q,
+                                                  IEDMODEL_MEDPROT_CSWI4_Pos_q, IEDMODEL_MEDPROT_CSWI5_Pos_q, IEDMODEL_MEDPROT_CSWI6_Pos_q };
+static DataAttribute* const cswiPosT[N_EQUIP] = { IEDMODEL_MEDPROT_CSWI1_Pos_t, IEDMODEL_MEDPROT_CSWI2_Pos_t, IEDMODEL_MEDPROT_CSWI3_Pos_t,
+                                                  IEDMODEL_MEDPROT_CSWI4_Pos_t, IEDMODEL_MEDPROT_CSWI5_Pos_t, IEDMODEL_MEDPROT_CSWI6_Pos_t };
+static DataAttribute* const opOpn[N_EQUIP]  = { IEDMODEL_MEDPROT_CSWI1_OpOpn_general, IEDMODEL_MEDPROT_CSWI2_OpOpn_general, IEDMODEL_MEDPROT_CSWI3_OpOpn_general,
+                                                IEDMODEL_MEDPROT_CSWI4_OpOpn_general, IEDMODEL_MEDPROT_CSWI5_OpOpn_general, IEDMODEL_MEDPROT_CSWI6_OpOpn_general };
+static DataAttribute* const opOpnT[N_EQUIP] = { IEDMODEL_MEDPROT_CSWI1_OpOpn_t, IEDMODEL_MEDPROT_CSWI2_OpOpn_t, IEDMODEL_MEDPROT_CSWI3_OpOpn_t,
+                                                IEDMODEL_MEDPROT_CSWI4_OpOpn_t, IEDMODEL_MEDPROT_CSWI5_OpOpn_t, IEDMODEL_MEDPROT_CSWI6_OpOpn_t };
+static DataAttribute* const opCls[N_EQUIP]  = { IEDMODEL_MEDPROT_CSWI1_OpCls_general, IEDMODEL_MEDPROT_CSWI2_OpCls_general, IEDMODEL_MEDPROT_CSWI3_OpCls_general,
+                                                IEDMODEL_MEDPROT_CSWI4_OpCls_general, IEDMODEL_MEDPROT_CSWI5_OpCls_general, IEDMODEL_MEDPROT_CSWI6_OpCls_general };
+static DataAttribute* const opClsT[N_EQUIP] = { IEDMODEL_MEDPROT_CSWI1_OpCls_t, IEDMODEL_MEDPROT_CSWI2_OpCls_t, IEDMODEL_MEDPROT_CSWI3_OpCls_t,
+                                                IEDMODEL_MEDPROT_CSWI4_OpCls_t, IEDMODEL_MEDPROT_CSWI5_OpCls_t, IEDMODEL_MEDPROT_CSWI6_OpCls_t };
 
-// Escreve uma posicao de ponto duplo (mesma convencao da Pi do servo)
-static void escreverDbpos(DataAttribute* da, int pos) {
-    MmsValue* v = MmsValue_newBitString(2);
-    MmsValue_setBitStringFromInteger(v, pos);
-    IedServer_updateAttributeValue(iedServer, da, v);
-    MmsValue_delete(v);
-}
-
-void* chaves_thread(void* arg) {
-    int motivoAntes[3] = {-1, -1, -1};      // ultimo estado publicado no CILO
-    int posPublicada[3] = {-1, -1, -1};     // ultimo valor publicado no CSWI.Pos (-2 = invalido)
+void* controle_thread(void* arg) {
+    int motivoOpnAntes[N_EQUIP], motivoClsAntes[N_EQUIP];  // ultimo estado publicado no CILO
+    int posPublicada[N_EQUIP];               // ultimo valor publicado no CSWI.Pos (-2 = invalido)
+    int64_t inicio[N_EQUIP] = {0};
+    int alvoCmd[N_EQUIP] = {0};              // comando publicado (0 = nenhum)
+    for (int e = 0; e < N_EQUIP; e++) motivoOpnAntes[e] = motivoClsAntes[e] = posPublicada[e] = -1;
     int posOkAntes = -1;
-    int64_t inicio[3] = {0, 0, 0};
-    int alvoCmd[3] = {0, 0, 0};             // comando publicado (0 = nenhum)
 
     while (running) {
         int64_t agora = agoraMs();
-        int dj[3], ch[3], novo[3];
+        int dj[3], ch[3], novo[N_EQUIP], atual[N_EQUIP];
+        bool jaChegou[N_EQUIP];
+        bool trip = tripAtivo();
 
         pthread_mutex_lock(&mtxChaves);
         bool posOk = posicoesOk(agora);
         memcpy(dj, posDj, sizeof(dj));
         memcpy(ch, posCh, sizeof(ch));
-        for (int n = 0; n < 3; n++) {
-            novo[n] = pedido[n];
-            if (novo[n]) {
-                emCurso[n] = novo[n];
-                pedido[n] = 0;
+        for (int e = 0; e < N_EQUIP; e++) {
+            atual[e] = posEquip(e);
+            jaChegou[e] = chegou[e];
+            novo[e] = pedido[e];
+            if (novo[e]) {
+                emCurso[e] = novo[e];
+                chegou[e] = false;
+                pedido[e] = 0;
             }
         }
         pthread_mutex_unlock(&mtxChaves);
@@ -716,122 +806,137 @@ void* chaves_thread(void* arg) {
             if (posOk)
                 LOG_PRINT("[GOOSE] Recebendo as posicoes da Pi do servo (gcbPos). Intertravamento ativo.\n");
             else if (posOkAntes == 1) {
-                LOG_PRINT("[GOOSE] Sem as posicoes da Pi do servo ha %d s! Todas as chaves bloqueadas.\n", POS_TIMEOUT_MS / 1000);
-                avisoLcd("SEM POSICOES", "CHAVES BLOQ.");
+                LOG_PRINT("[GOOSE] Sem as posicoes da Pi do servo ha %d s! Comandos bloqueados.\n", POS_TIMEOUT_MS / 1000);
+                avisoLcd("SEM POSICOES", "COMANDOS BLOQ.");
             }
             posOkAntes = posOk;
         }
 
-        int motivo[3];
-        bool escrever = false;              // so trava o modelo se tiver algo novo
-        for (int n = 0; n < 3; n++) {
-            motivo[n] = intertravamento(posOk, dj[n]);
+        int motivoOpn[N_EQUIP], motivoCls[N_EQUIP];
+        bool escrever = false;               // so trava o modelo se tiver algo novo
+        for (int e = 0; e < N_EQUIP; e++) {
+            int v = VAO(e);
+            motivoOpn[e] = intertravamento(e, POS_ABERTA, posOk, dj[v], ch[v], trip);
+            motivoCls[e] = intertravamento(e, POS_FECHADA, posOk, dj[v], ch[v], trip);
 
-            // Confere de novo na hora de publicar: o disjuntor pode ter
-            // fechado entre o operador pedir e este instante.
-            if (novo[n] && motivo[n] != LIBERADA) {
-                char frase[120], l1[17], l2[17];
-                textoBloqueio(motivo[n], n, frase, sizeof(frase), l2, sizeof(l2));
-                snprintf(l1, sizeof(l1), "CH%c BLOQUEADA", DIGITO(n));
-                avisoLcd(l1, l2);
-                LOG_PRINT("[INTERTRAVAMENTO] Comando da chave %d cancelado antes de sair: %s.\n", n + 1, frase);
-                LOG_PRINT("--------------------------------------------------\n");
-                novo[n] = 0;
-                pthread_mutex_lock(&mtxChaves);
-                emCurso[n] = 0;
-                pthread_mutex_unlock(&mtxChaves);
+            // Confere de novo na hora de publicar: o patio pode ter mudado
+            // entre o operador pedir e este instante.
+            if (novo[e]) {
+                int motivo = (novo[e] == POS_ABERTA) ? motivoOpn[e] : motivoCls[e];
+                if (motivo != LIBERADA) {
+                    char frase[120], l1[17], l2[17];
+                    textoBloqueio(motivo, e, frase, sizeof(frase), l2, sizeof(l2));
+                    snprintf(l1, sizeof(l1), "%s %s", siglaEquip(e), EH_DJ(e) ? "BLOQUEADO" : "BLOQUEADA");
+                    avisoLcd(l1, l2);
+                    LOG_PRINT("[INTERTRAVAMENTO] Comando %s %s cancelado antes de sair: %s.\n", DE(e), nomeEquip(e), frase);
+                    LOG_PRINT("--------------------------------------------------\n");
+                    novo[e] = 0;
+                    pthread_mutex_lock(&mtxChaves);
+                    emCurso[e] = 0;
+                    pthread_mutex_unlock(&mtxChaves);
+                }
             }
 
-            int p = posOk ? ch[n] : -2;
-            if (motivo[n] != motivoAntes[n] || p != posPublicada[n] || novo[n]) escrever = true;
+            int p = posOk ? atual[e] : -2;
+            if (motivoOpn[e] != motivoOpnAntes[e] || motivoCls[e] != motivoClsAntes[e] ||
+                p != posPublicada[e] || novo[e]) escrever = true;
         }
         uint64_t ts = Hal_getTimeInMs();
 
         if (escrever) IedServer_lockDataModel(iedServer);
-        for (int n = 0; n < 3 && escrever; n++) {
-            // CILO: liberado ou nao
-            if (motivo[n] != motivoAntes[n]) {
-                bool ena = (motivo[n] == LIBERADA);
-                IedServer_updateUTCTimeAttributeValue(iedServer, enaOpnT[n], ts);   // horario antes do valor
-                IedServer_updateBooleanAttributeValue(iedServer, enaOpn[n], ena);
-                IedServer_updateUTCTimeAttributeValue(iedServer, enaClsT[n], ts);
-                IedServer_updateBooleanAttributeValue(iedServer, enaCls[n], ena);
+        for (int e = 0; e < N_EQUIP && escrever; e++) {
+            // CILO: liberado ou nao (horario antes do valor)
+            if (motivoOpn[e] != motivoOpnAntes[e]) {
+                IedServer_updateUTCTimeAttributeValue(iedServer, enaOpnT[e], ts);
+                IedServer_updateBooleanAttributeValue(iedServer, enaOpn[e], motivoOpn[e] == LIBERADA);
+            }
+            if (motivoCls[e] != motivoClsAntes[e]) {
+                IedServer_updateUTCTimeAttributeValue(iedServer, enaClsT[e], ts);
+                IedServer_updateBooleanAttributeValue(iedServer, enaCls[e], motivoCls[e] == LIBERADA);
             }
 
-            // CSWI.Pos: espelho da chave real, invalido sem GOOSE
-            int p = posOk ? ch[n] : -2;
-            if (p != posPublicada[n]) {
-                IedServer_updateUTCTimeAttributeValue(iedServer, cswiPosT[n], ts);   // horario antes do valor
+            // CSWI.Pos: espelho do equipamento real, invalido sem GOOSE
+            int p = posOk ? atual[e] : -2;
+            if (p != posPublicada[e]) {
+                IedServer_updateUTCTimeAttributeValue(iedServer, cswiPosT[e], ts);   // horario antes do valor
                 if (posOk) {
-                    escreverDbpos(cswiPos[n], ch[n]);
-                    IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_GOOD);
+                    IedServer_updateDbposValue(iedServer, cswiPos[e], (Dbpos) atual[e]);
+                    IedServer_updateQuality(iedServer, cswiPosQ[e], QUALITY_VALIDITY_GOOD);
                 } else {
-                    IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
+                    IedServer_updateQuality(iedServer, cswiPosQ[e], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
                 }
-                posPublicada[n] = p;
+                posPublicada[e] = p;
             }
 
             // Comando novo: liga o sinal (OpOpn ou OpCls). E isto que dispara o GOOSE.
-            if (novo[n]) {
-                DataAttribute* sinal  = (novo[n] == POS_ABERTA) ? opOpn[n]  : opCls[n];
-                DataAttribute* sinalT = (novo[n] == POS_ABERTA) ? opOpnT[n] : opClsT[n];
+            if (novo[e]) {
+                DataAttribute* sinal  = (novo[e] == POS_ABERTA) ? opOpn[e]  : opCls[e];
+                DataAttribute* sinalT = (novo[e] == POS_ABERTA) ? opOpnT[e] : opClsT[e];
                 IedServer_updateUTCTimeAttributeValue(iedServer, sinalT, ts);
                 IedServer_updateBooleanAttributeValue(iedServer, sinal, true);
-                inicio[n] = agora;
-                alvoCmd[n] = novo[n];
+                inicio[e] = agora;
+                alvoCmd[e] = novo[e];
             }
         }
         if (escrever) IedServer_unlockDataModel(iedServer);
 
-        for (int n = 0; n < 3; n++) {
-            if (novo[n])
-                LOG_PRINT("[GOOSE] Comando %s da chave %d publicado (gcbCmd: CSWI%d.%s).\n",
-                          (novo[n] == POS_ABERTA) ? "ABRIR" : "FECHAR", n + 1, n + 1,
-                          (novo[n] == POS_ABERTA) ? "OpOpn" : "OpCls");
+        for (int e = 0; e < N_EQUIP; e++) {
+            bool chave = !EH_DJ(e);
+            if (novo[e])
+                LOG_PRINT("[GOOSE] Comando %s %s %s publicado (gcbCmd: CSWI%d.%s).\n",
+                          (novo[e] == POS_ABERTA) ? "ABRIR" : "FECHAR", DE(e), nomeEquip(e), e + 1,
+                          (novo[e] == POS_ABERTA) ? "OpOpn" : "OpCls");
 
-            if (motivo[n] != motivoAntes[n]) {
-                if (motivoAntes[n] >= 0) {       // nao repete no inicio
-                    char frase[120], lcd[17];
-                    if (motivo[n] == LIBERADA)
-                        LOG_PRINT("[INTERTRAVAMENTO] Chave %d liberada (disjuntor %d aberto).\n", n + 1, n + 1);
-                    else {
-                        textoBloqueio(motivo[n], n, frase, sizeof(frase), lcd, sizeof(lcd));
-                        LOG_PRINT("[INTERTRAVAMENTO] Chave %d bloqueada: %s.\n", n + 1, frase);
-                    }
+            // Mudancas no intertravamento, so no terminal (nao repete no inicio).
+            // Chave: abrir e fechar mudam juntos. Disjuntor: so o fechar muda.
+            int m = chave ? motivoOpn[e] : motivoCls[e];
+            int mAntes = chave ? motivoOpnAntes[e] : motivoClsAntes[e];
+            if (m != mAntes && mAntes >= 0) {
+                char frase[120], lcd[17];
+                if (m == LIBERADA) {
+                    if (chave) LOG_PRINT("[INTERTRAVAMENTO] Chave %d liberada (disjuntor %d aberto).\n", VAO(e) + 1, VAO(e) + 1);
+                    else       LOG_PRINT("[INTERTRAVAMENTO] Fechamento do disjuntor %d liberado.\n", VAO(e) + 1);
+                } else {
+                    textoBloqueio(m, e, frase, sizeof(frase), lcd, sizeof(lcd));
+                    if (chave) LOG_PRINT("[INTERTRAVAMENTO] Chave %d bloqueada: %s.\n", VAO(e) + 1, frase);
+                    else       LOG_PRINT("[INTERTRAVAMENTO] Fechamento do disjuntor %d bloqueado: %s.\n", VAO(e) + 1, frase);
                 }
-                motivoAntes[n] = motivo[n];
             }
+            motivoOpnAntes[e] = motivoOpn[e];
+            motivoClsAntes[e] = motivoCls[e];
 
-            // Comando em curso: a chave chegou? Passou do tempo?
-            if (alvoCmd[n] && !novo[n]) {
-                bool chegou = posOk && (ch[n] == alvoCmd[n]);
-                bool estourou = (agora - inicio[n]) > CMD_TIMEOUT_MS;
-                if (chegou || estourou) {
-                    DataAttribute* sinal  = (alvoCmd[n] == POS_ABERTA) ? opOpn[n]  : opCls[n];
-                    DataAttribute* sinalT = (alvoCmd[n] == POS_ABERTA) ? opOpnT[n] : opClsT[n];
+            // Comando em curso: o equipamento chegou? Passou do tempo?
+            if (alvoCmd[e] && !novo[e]) {
+                bool chegouLa = jaChegou[e] || (posOk && atual[e] == alvoCmd[e]);
+                bool estourou = (agora - inicio[e]) > CMD_TIMEOUT_MS;
+                if (chegouLa || estourou) {
+                    DataAttribute* sinal  = (alvoCmd[e] == POS_ABERTA) ? opOpn[e]  : opCls[e];
+                    DataAttribute* sinalT = (alvoCmd[e] == POS_ABERTA) ? opOpnT[e] : opClsT[e];
                     IedServer_lockDataModel(iedServer);
-                    IedServer_updateBooleanAttributeValue(iedServer, sinal, false);
                     IedServer_updateUTCTimeAttributeValue(iedServer, sinalT, Hal_getTimeInMs());
+                    IedServer_updateBooleanAttributeValue(iedServer, sinal, false);
                     IedServer_unlockDataModel(iedServer);
 
                     char l1[17];
-                    const char* final = (alvoCmd[n] == POS_ABERTA) ? "ABERTA" : "FECHADA";
-                    if (chegou) {
-                        snprintf(l1, sizeof(l1), "CH%c %s", DIGITO(n), final);
+                    const char* final = (alvoCmd[e] == POS_ABERTA) ? (chave ? "ABERTA" : "ABERTO")
+                                                                   : (chave ? "FECHADA" : "FECHADO");
+                    if (chegouLa) {
+                        snprintf(l1, sizeof(l1), "%s %s", siglaEquip(e), final);
                         avisoLcd(l1, "CONFIRMADO");
-                        LOG_PRINT("[CHAVE] Chave %d %s: confirmado pelo GOOSE da Pi do servo em %lld ms.\n",
-                                  n + 1, final, (long long) (agora - inicio[n]));
+                        LOG_PRINT("[COMANDO] %s %s: confirmado pelo GOOSE da Pi do servo em %lld ms.\n",
+                                  siglaEquip(e), final, (long long) (agora - inicio[e]));
                     } else {
-                        snprintf(l1, sizeof(l1), "CH%c SEM RESPOSTA", DIGITO(n));
+                        snprintf(l1, sizeof(l1), "%s SEM RESPOSTA", siglaEquip(e));
                         avisoLcd(l1, "VEJA A PI SERVO");
-                        LOG_PRINT("[CHAVE] Chave %d nao chegou a ficar %s em %d s. Veja o terminal da Pi do servo.\n",
-                                  n + 1, textoPos(alvoCmd[n], true), CMD_TIMEOUT_MS / 1000);
+                        LOG_PRINT("[COMANDO] %s nao chegou a ficar %s em %d s. Veja o terminal da Pi do servo.\n",
+                                  siglaEquip(e), textoPos(alvoCmd[e], chave), CMD_TIMEOUT_MS / 1000);
                     }
                     LOG_PRINT("--------------------------------------------------\n");
 
-                    alvoCmd[n] = 0;
+                    alvoCmd[e] = 0;
                     pthread_mutex_lock(&mtxChaves);
-                    emCurso[n] = 0;
+                    emCurso[e] = 0;
+                    chegou[e] = false;
                     pthread_mutex_unlock(&mtxChaves);
                 }
             }
@@ -1020,7 +1125,7 @@ static int ate999(double x) {
 }
 
 // aviso != NULL: o LCD2 mostra o aviso das chaves no lugar das tensoes
-static void atualizarDisplays(const Medidas* m, bool svOk, int fases, const char aviso[2][17]) {
+static void atualizarDisplays(const Medidas* m, bool svOk, int fases, int memo, const char aviso[2][17]) {
     char l[40];
 
     if (lcd1 >= 0) {
@@ -1030,6 +1135,11 @@ static void atualizarDisplays(const Medidas* m, bool svOk, int fases, const char
             char f[4];
             textoFases(fases, f);
             snprintf(l, sizeof(l), "TRIP %-3s ->GOOSE", f);
+            lcdLinha(lcd1, 0, l);
+        } else if (memo) {
+            char f[4];
+            textoFases(memo, f);
+            snprintf(l, sizeof(l), "ULTIMO TRIP: %s", f);
             lcdLinha(lcd1, 0, l);
         } else {
             lcdLinha(lcd1, 0, "CORRENTE (A)");
@@ -1063,6 +1173,7 @@ void* display_thread(void* arg) {
     uint32_t perdidasAntes = 0;
     uint32_t avisoSeqAntes = 0;
     bool avisoAntes = false;
+    int memoAntes = -1;
 
     while (running) {
         Medidas m;
@@ -1086,6 +1197,7 @@ void* display_thread(void* arg) {
         }
 
         int fases = fasesAtuadas;
+        int memo = tripMemo;
 
         // Aviso das chaves no LCD2 (fica AVISO_MS na tela)
         char aviso[2][17];
@@ -1096,7 +1208,7 @@ void* display_thread(void* arg) {
         memcpy(aviso[1], avisoL2, sizeof(aviso[1]));
         pthread_mutex_unlock(&mtxAviso);
 
-        bool mudou = (svOk != svOkAntes) || (fases != fasesAntes);
+        bool mudou = (svOk != svOkAntes) || (fases != fasesAntes) || (memo != memoAntes);
         bool mudouLcd = mudou || (avisoAtivo != avisoAntes) || (seq != avisoSeqAntes);
 
         if (mudou || agora - ultimoMmxu >= 1000) {
@@ -1104,7 +1216,7 @@ void* display_thread(void* arg) {
             ultimoMmxu = agora;
         }
         if (mudouLcd || agora - ultimoLcd >= 500) {
-            atualizarDisplays(&m, svOk, fases, avisoAtivo ? (const char (*)[17]) aviso : NULL);
+            atualizarDisplays(&m, svOk, fases, memo, avisoAtivo ? (const char (*)[17]) aviso : NULL);
             ultimoLcd = agora;
         }
         if (agora - ultimoLog >= 5000) {
@@ -1121,6 +1233,7 @@ void* display_thread(void* arg) {
 
         svOkAntes = svOk;
         fasesAntes = fases;
+        memoAntes = memo;
         avisoAntes = avisoAtivo;
         avisoSeqAntes = seq;
         Thread_sleep(50);
@@ -1159,15 +1272,16 @@ int main(int argc, char** argv) {
     int tcpPort = 102;
     if (argc > 1) tcpPort = atoi(argv[1]);
 
-    // Chaves: o operador comanda no CSWIn.Pos (1 = abrir, 2 = fechar), como
-    // fazia antes direto na Pi do servo. O intertravamento roda no check.
-    DataObject* cswi[3] = { IEDMODEL_MEDPROT_CSWI1_Pos, IEDMODEL_MEDPROT_CSWI2_Pos, IEDMODEL_MEDPROT_CSWI3_Pos };
-    for (int n = 0; n < 3; n++) {
-        IedServer_updateCtlModel(iedServer, cswi[n], CONTROL_MODEL_DIRECT_NORMAL);
-        IedServer_setPerformCheckHandler(iedServer, cswi[n], checkChave, (void*) (intptr_t) n);
-        IedServer_setControlHandler(iedServer, cswi[n], (ControlHandler) operarChave, (void*) (intptr_t) n);
+    // Chaves (CSWI1-3) e disjuntores (CSWI4-6): o operador comanda no
+    // CSWIn.Pos (ctlVal true = fechar, false = abrir). O intertravamento roda no check.
+    DataObject* cswi[N_EQUIP] = { IEDMODEL_MEDPROT_CSWI1_Pos, IEDMODEL_MEDPROT_CSWI2_Pos, IEDMODEL_MEDPROT_CSWI3_Pos,
+                                  IEDMODEL_MEDPROT_CSWI4_Pos, IEDMODEL_MEDPROT_CSWI5_Pos, IEDMODEL_MEDPROT_CSWI6_Pos };
+    for (int e = 0; e < N_EQUIP; e++) {
+        IedServer_updateCtlModel(iedServer, cswi[e], CONTROL_MODEL_DIRECT_NORMAL);
+        IedServer_setPerformCheckHandler(iedServer, cswi[e], checkComando, (void*) (intptr_t) e);
+        IedServer_setControlHandler(iedServer, cswi[e], (ControlHandler) operarComando, (void*) (intptr_t) e);
         // Ate chegar o primeiro GOOSE de posicoes, a posicao e desconhecida
-        IedServer_updateQuality(iedServer, cswiPosQ[n], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
+        IedServer_updateQuality(iedServer, cswiPosQ[e], QUALITY_VALIDITY_INVALID | QUALITY_DETAIL_FAILURE);
     }
 
     // GOOSE sai pelo cabo
@@ -1217,19 +1331,21 @@ int main(int argc, char** argv) {
     else
         LOG_PRINT("[SV]     ERRO: receptor de SV nao iniciou. Confira se %s existe e se rodou com sudo.\n", INTERFACE_SV);
     LOG_PRINT("[GOOSE]  Publicando gcbTrip em %s (APPID 0x1001).\n", INTERFACE_GOOSE);
-    LOG_PRINT("[PROTECAO] Sobrecorrente de fase, sem atraso, partida em %.0f A. Trip tripolar.\n", PTOC_PARTIDA);
-    LOG_PRINT("[GOOSE]  Publicando gcbCmd em %s (APPID 0x1003): comandos das chaves.\n", INTERFACE_GOOSE);
+    LOG_PRINT("[PROTECAO] Sobrecorrente instantanea de fase (PIOC1), partida em %.0f A. Trip tripolar.\n", PIOC_PARTIDA);
+    LOG_PRINT("[GOOSE]  Publicando gcbCmd em %s (APPID 0x1003): comandos das chaves e dos disjuntores.\n", INTERFACE_GOOSE);
     if (GooseReceiver_isRunning(gooseReceiver))
         LOG_PRINT("[GOOSE]  Assinando gcbPos em %s (APPID 0x%04X): posicoes da Pi do servo. Aguardando...\n",
                   INTERFACE_GOOSE, GOOSE_POS_APPID);
     else
         LOG_PRINT("[GOOSE]  ERRO: receptor de GOOSE nao iniciou. Confira se %s existe e se rodou com sudo.\n", INTERFACE_GOOSE);
-    LOG_PRINT("[CHAVES] CSWI1-3 com intertravamento (CILO1-3): chave N so manobra com o disjuntor N aberto.\n");
+    LOG_PRINT("[CONTROLE] Chaves: CSWI1-3 + CILO1-3 (chave N so manobra com o disjuntor N aberto).\n");
+    LOG_PRINT("[CONTROLE] Disjuntores: CSWI4-6 + CILO4-6 (abre sempre; fecha com a chave parada; DJ1 nao fecha com trip).\n");
+    LOG_PRINT("[CONTROLE] Comando no formato da norma: ctlVal true = fechar, false = abrir.\n");
 
     running = 1;
     Thread displayThread = Thread_create((ThreadExecutionFunction) display_thread, NULL, false);
     Thread_start(displayThread);
-    Thread chavesThread = Thread_create((ThreadExecutionFunction) chaves_thread, NULL, false);
+    Thread chavesThread = Thread_create((ThreadExecutionFunction) controle_thread, NULL, false);
     Thread_start(chavesThread);
     Thread somThread = Thread_create((ThreadExecutionFunction) som_thread, NULL, false);
     Thread_start(somThread);

@@ -1,0 +1,703 @@
+{
+ "telas": [
+  {
+   "id": "unifilar",
+   "nome": "Unifilar",
+   "largura": 1280,
+   "altura": 720,
+   "itens": [
+    {
+     "id": "p1",
+     "tipo": "painel",
+     "x": 20,
+     "y": 70,
+     "w": 760,
+     "h": 630,
+     "props": {
+      "titulo": "Pátio — vão de linha 500 kV",
+      "cor": "#151c25"
+     }
+    },
+    {
+     "id": "p2",
+     "tipo": "painel",
+     "x": 800,
+     "y": 70,
+     "w": 460,
+     "h": 300,
+     "props": {
+      "titulo": "Medição (MMXU1)",
+      "cor": "#151c25"
+     }
+    },
+    {
+     "id": "p3",
+     "tipo": "painel",
+     "x": 800,
+     "y": 385,
+     "w": 460,
+     "h": 120,
+     "props": {
+      "titulo": "Proteção",
+      "cor": "#151c25"
+     }
+    },
+    {
+     "id": "p4",
+     "tipo": "texto",
+     "x": 24,
+     "y": 16,
+     "w": 700,
+     "h": 40,
+     "props": {
+      "texto": "Subestação EmPowerElas — supervisório",
+      "tamanho": 24,
+      "cor": "#e6ebf0",
+      "negrito": true
+     }
+    },
+    {
+     "id": "p5",
+     "tipo": "texto",
+     "x": 60,
+     "y": 112,
+     "w": 300,
+     "h": 30,
+     "props": {
+      "texto": "Barra 500 kV",
+      "tamanho": 15,
+      "cor": "#9aa7b4",
+      "negrito": false
+     }
+    },
+    {
+     "id": "p6",
+     "tipo": "barra",
+     "x": 60,
+     "y": 150,
+     "w": 680,
+     "h": 10,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p7",
+     "tipo": "barra",
+     "x": 177,
+     "y": 160,
+     "w": 6,
+     "h": 40,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p8",
+     "tipo": "chave",
+     "x": 155,
+     "y": 200,
+     "w": 50,
+     "h": 90,
+     "props": {
+      "rotulo": "CH1",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XSWI1.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI1.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO1.EnaOpn.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p9",
+     "tipo": "barra",
+     "x": 177,
+     "y": 290,
+     "w": 6,
+     "h": 50,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p10",
+     "tipo": "disjuntor",
+     "x": 150,
+     "y": 340,
+     "w": 60,
+     "h": 60,
+     "props": {
+      "rotulo": "DJ1",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XCBR1.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI4.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO4.EnaCls.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p11",
+     "tipo": "barra",
+     "x": 177,
+     "y": 400,
+     "w": 6,
+     "h": 70,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p12",
+     "tipo": "texto",
+     "x": 140,
+     "y": 476,
+     "w": 160,
+     "h": 30,
+     "props": {
+      "texto": "Vão 1 — linha",
+      "tamanho": 15,
+      "cor": "#9aa7b4",
+      "negrito": true
+     }
+    },
+    {
+     "id": "p13",
+     "tipo": "barra",
+     "x": 407,
+     "y": 160,
+     "w": 6,
+     "h": 40,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p14",
+     "tipo": "chave",
+     "x": 385,
+     "y": 200,
+     "w": 50,
+     "h": 90,
+     "props": {
+      "rotulo": "CH2",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XSWI2.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI2.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO2.EnaOpn.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p15",
+     "tipo": "barra",
+     "x": 407,
+     "y": 290,
+     "w": 6,
+     "h": 50,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p16",
+     "tipo": "disjuntor",
+     "x": 380,
+     "y": 340,
+     "w": 60,
+     "h": 60,
+     "props": {
+      "rotulo": "DJ2",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XCBR2.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI5.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO5.EnaCls.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p17",
+     "tipo": "barra",
+     "x": 407,
+     "y": 400,
+     "w": 6,
+     "h": 70,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p18",
+     "tipo": "texto",
+     "x": 370,
+     "y": 476,
+     "w": 160,
+     "h": 30,
+     "props": {
+      "texto": "Vão 2",
+      "tamanho": 15,
+      "cor": "#9aa7b4",
+      "negrito": true
+     }
+    },
+    {
+     "id": "p19",
+     "tipo": "barra",
+     "x": 637,
+     "y": 160,
+     "w": 6,
+     "h": 40,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p20",
+     "tipo": "chave",
+     "x": 615,
+     "y": 200,
+     "w": 50,
+     "h": 90,
+     "props": {
+      "rotulo": "CH3",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XSWI3.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI3.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO3.EnaOpn.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p21",
+     "tipo": "barra",
+     "x": 637,
+     "y": 290,
+     "w": 6,
+     "h": 50,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p22",
+     "tipo": "disjuntor",
+     "x": 610,
+     "y": 340,
+     "w": 60,
+     "h": 60,
+     "props": {
+      "rotulo": "DJ3",
+      "pos": {
+       "ied": "CTRL",
+       "fc": "ST",
+       "ref": "EmpElas_CTRLVAO/XCBR3.Pos.stVal"
+      },
+      "cmd": {
+       "ied": "PROT",
+       "ref": "EmpElas_PROTMEDPROT/CSWI6.Pos",
+       "tipo": "d"
+      },
+      "liberada": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/CILO6.EnaCls.stVal"
+      },
+      "mostrarEstado": true
+     }
+    },
+    {
+     "id": "p23",
+     "tipo": "barra",
+     "x": 637,
+     "y": 400,
+     "w": 6,
+     "h": 70,
+     "props": {
+      "cor": "#9aa7b4"
+     }
+    },
+    {
+     "id": "p24",
+     "tipo": "texto",
+     "x": 600,
+     "y": 476,
+     "w": 160,
+     "h": 30,
+     "props": {
+      "texto": "Vão 3",
+      "tamanho": 15,
+      "cor": "#9aa7b4",
+      "negrito": true
+     }
+    },
+    {
+     "id": "p26",
+     "tipo": "indicador",
+     "x": 60,
+     "y": 572,
+     "w": 320,
+     "h": 36,
+     "props": {
+      "rotulo": "Árvore na linha (botão da maquete)",
+      "tag": {
+       "ied": "MU",
+       "fc": "ST",
+       "ref": "EmpElas_MUMU01/FLTGGIO1.SPCSO1.stVal"
+      },
+      "textoOn": "FALTA",
+      "textoOff": "linha normal",
+      "corOn": "#ff5a5f",
+      "corOff": "#2fbf71",
+      "piscar": true
+     }
+    },
+    {
+     "id": "p27",
+     "tipo": "texto",
+     "x": 60,
+     "y": 640,
+     "w": 700,
+     "h": 30,
+     "props": {
+      "texto": "Toque num disjuntor ou chave para manobrar. O cadeado mostra o que o intertravamento está bloqueando.",
+      "tamanho": 13,
+      "cor": "#9aa7b4",
+      "negrito": false
+     }
+    },
+    {
+     "id": "p28",
+     "tipo": "medida",
+     "x": 820,
+     "y": 110,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "IA",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsA.cVal.mag.f"
+      },
+      "unidade": "A",
+      "casas": 0,
+      "limite": 300
+     }
+    },
+    {
+     "id": "p29",
+     "tipo": "medida",
+     "x": 930,
+     "y": 110,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "IB",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsB.cVal.mag.f"
+      },
+      "unidade": "A",
+      "casas": 0,
+      "limite": 300
+     }
+    },
+    {
+     "id": "p30",
+     "tipo": "medida",
+     "x": 1040,
+     "y": 110,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "IC",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsC.cVal.mag.f"
+      },
+      "unidade": "A",
+      "casas": 0,
+      "limite": 300
+     }
+    },
+    {
+     "id": "p31",
+     "tipo": "medida",
+     "x": 1150,
+     "y": 110,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "IN",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.neut.cVal.mag.f"
+      },
+      "unidade": "A",
+      "casas": 0,
+      "limite": 50
+     }
+    },
+    {
+     "id": "p32",
+     "tipo": "medida",
+     "x": 820,
+     "y": 200,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "VA",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsA.cVal.mag.f"
+      },
+      "unidade": "kV",
+      "casas": 0,
+      "limite": ""
+     }
+    },
+    {
+     "id": "p33",
+     "tipo": "medida",
+     "x": 930,
+     "y": 200,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "VB",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsB.cVal.mag.f"
+      },
+      "unidade": "kV",
+      "casas": 0,
+      "limite": ""
+     }
+    },
+    {
+     "id": "p34",
+     "tipo": "medida",
+     "x": 1040,
+     "y": 200,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "VC",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsC.cVal.mag.f"
+      },
+      "unidade": "kV",
+      "casas": 0,
+      "limite": ""
+     }
+    },
+    {
+     "id": "p35",
+     "tipo": "medida",
+     "x": 1150,
+     "y": 200,
+     "w": 100,
+     "h": 72,
+     "props": {
+      "rotulo": "VAB",
+      "tag": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.PPV.phsAB.cVal.mag.f"
+      },
+      "unidade": "kV",
+      "casas": 0,
+      "limite": ""
+     }
+    },
+    {
+     "id": "p36",
+     "tipo": "texto",
+     "x": 820,
+     "y": 290,
+     "w": 420,
+     "h": 24,
+     "props": {
+      "texto": "Tensões de fase: 500 kV ÷ √3 ≈ 289 kV.",
+      "tamanho": 13,
+      "cor": "#9aa7b4",
+      "negrito": false
+     }
+    },
+    {
+     "id": "p41",
+     "tipo": "texto",
+     "x": 820,
+     "y": 316,
+     "w": 420,
+     "h": 24,
+     "props": {
+      "texto": "Corrente acima de 300 A em qualquer fase dá trip.",
+      "tamanho": 13,
+      "cor": "#9aa7b4",
+      "negrito": false
+     }
+    },
+    {
+     "id": "p37",
+     "tipo": "indicador",
+     "x": 820,
+     "y": 420,
+     "w": 140,
+     "h": 36,
+     "props": {
+      "rotulo": "Partida",
+      "tag": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/PIOC1.Str.general"
+      },
+      "textoOn": "PIOC1",
+      "textoOff": "PIOC1",
+      "corOn": "#f5b83d",
+      "corOff": "#3a4654",
+      "piscar": false
+     }
+    },
+    {
+     "id": "p38",
+     "tipo": "indicador",
+     "x": 970,
+     "y": 420,
+     "w": 140,
+     "h": 36,
+     "props": {
+      "rotulo": "Atuação",
+      "tag": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/PIOC1.Op.general"
+      },
+      "textoOn": "PIOC1",
+      "textoOff": "PIOC1",
+      "corOn": "#ff5a5f",
+      "corOff": "#3a4654",
+      "piscar": false
+     }
+    },
+    {
+     "id": "p39",
+     "tipo": "indicador",
+     "x": 1120,
+     "y": 420,
+     "w": 130,
+     "h": 36,
+     "props": {
+      "rotulo": "TRIP",
+      "tag": {
+       "ied": "PROT",
+       "fc": "ST",
+       "ref": "EmpElas_PROTMEDPROT/PTRC1.Tr.general"
+      },
+      "textoOn": "GOOSE enviado",
+      "textoOff": "PTRC1",
+      "corOn": "#ff5a5f",
+      "corOff": "#3a4654",
+      "piscar": true
+     }
+    },
+    {
+     "id": "p40",
+     "tipo": "tendencia",
+     "x": 800,
+     "y": 520,
+     "w": 460,
+     "h": 180,
+     "props": {
+      "titulo": "Correntes (A)",
+      "tag1": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsA.cVal.mag.f"
+      },
+      "rot1": "IA",
+      "cor1": "#ff5a5f",
+      "tag2": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsB.cVal.mag.f"
+      },
+      "rot2": "IB",
+      "cor2": "#f5b83d",
+      "tag3": {
+       "ied": "PROT",
+       "fc": "MX",
+       "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsC.cVal.mag.f"
+      },
+      "rot3": "IC",
+      "cor3": "#3d8bfd",
+      "min": 0,
+      "max": 900,
+      "janela": 60
+     }
+    }
+   ]
+  }
+ ]
+}

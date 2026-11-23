@@ -3675,7 +3675,7 @@ DataAttribute iedModel_VAO_XSWI1_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -5169,7 +5169,7 @@ DataAttribute iedModel_VAO_XSWI2_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -6663,7 +6663,7 @@ DataAttribute iedModel_VAO_XSWI3_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -7809,7 +7809,7 @@ DataAttribute iedModel_VAO_XCBR1_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -8761,7 +8761,7 @@ DataAttribute iedModel_VAO_XCBR2_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -9713,7 +9713,7 @@ DataAttribute iedModel_VAO_XCBR3_Pos_Oper_ctlVal = {
     0,
     -1,
     IEC61850_FC_CO,
-    IEC61850_CODEDENUM,
+    IEC61850_BOOLEAN,
     0,
     NULL,
     0};
@@ -10245,9 +10245,9 @@ iedModel_VAO_XSWI2_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
 
 iedModel_VAO_XSWI3_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
 
-iedModel_VAO_XCBR1_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+iedModel_VAO_XCBR1_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
 
-iedModel_VAO_XCBR2_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+iedModel_VAO_XCBR2_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
 
-iedModel_VAO_XCBR3_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(1);
+iedModel_VAO_XCBR3_Pos_ctlModel.mmsValue = MmsValue_newIntegerFromInt32(0);
 }

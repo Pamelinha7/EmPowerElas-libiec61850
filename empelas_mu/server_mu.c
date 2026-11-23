@@ -16,6 +16,14 @@
  *   - supervisorio: FLTGGIO1.SPCSO1 (1 derruba a arvore, 0 retira).
  * Um LED ao lado do botao fica aceso enquanto a arvore estiver na linha.
  *
+ * O VAO 1 (DJ1 + CHAVE 1)
+ * O TC e o TP desta MU ficam no vao 1. A MU assina o GOOSE de posicoes da
+ * Pi do servo (gcbPos) e sabe se o vao esta fechado (DJ1 E chave 1
+ * fechados). Com o vao aberto nao passa corrente nenhuma: as correntes vao
+ * a zero, inclusive a da falta, como numa subestacao de verdade. As tensoes
+ * sao as do barramento e continuam normais. Por isso, depois que o trip
+ * abre o DJ1, a corrente zera e a protecao retira o trip sozinha.
+ *
  * Esta Pi nao decide nada: so "mede" a linha e publica. Quem ve a falta e
  * atua e o IED de protecao (EmpElas_PROT), que assina este SV.
  *
@@ -29,6 +37,8 @@
 #include "iec61850_server.h"
 #include "hal_thread.h"
 #include "sv_publisher.h"
+#include "goose_receiver.h"
+#include "goose_subscriber.h"
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/timex.h>     // adjtimex: o relogio esta sincronizado?
@@ -61,6 +71,21 @@
 #define SV_ID          "EmpElas_MU01"
 #define SV_CONFREV     1
 static const uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
+
+// ========== POSICOES DO PATIO (GOOSE gcbPos da Pi do servo) ==========
+// Iguais aos do empelas_ctrl.icd e do server_prot.c. O dsPos traz, nesta
+// ordem: XCBR1, XCBR2, XCBR3, XSWI1, XSWI2, XSWI3.
+#ifndef INTERFACE_GOOSE
+#define INTERFACE_GOOSE  "eth0"
+#endif
+#define GOOSE_POS_REF    "EmpElas_CTRLVAO/LLN0$GO$gcbPos"
+#define GOOSE_POS_APPID  0x1002
+static uint8_t GOOSE_POS_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x01, 0x00, 0x02};
+// Sem o GOOSE por mais que isto, a MU considera o vao fechado (o lado
+// seguro: se houver falta, a protecao continua vendo a corrente).
+#define POS_TIMEOUT_MS   3000
+// As posicoes vem no formato da norma (Dbpos: 01 = aberto, 10 = fechado) e
+// sao lidas com Dbpos_fromMmsValue, da propria biblioteca.
 
 // ===================== AMOSTRAGEM ============================
 #define FREQ_HZ             60
@@ -98,6 +123,9 @@ static const uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
 static volatile int running = 0;
 static IedServer iedServer = NULL;
 static volatile int arvoreNaLinha = 0;      // 1 = falta aplicada
+static volatile int vaoFechado = 1;         // 1 = DJ1 e chave 1 fechados (passa corrente)
+static volatile int posConhecida = 0;       // 1 = gcbPos chegando
+static volatile int64_t ultimoPosMs = 0;    // quando chegou o ultimo gcbPos
 static pthread_mutex_t mtxFalta = PTHREAD_MUTEX_INITIALIZER;
 #ifndef SEM_BOTAO
 static int botaoOk = 0;
@@ -176,7 +204,8 @@ static void mudarFalta(int acao, const char* origem, bool travarModelo) {
     LOG_PRINT("==================================================\n");
     if (novo)
         LOG_PRINT("[FALTA] Uma arvore caiu na linha! Falta fase-terra na fase A.\n"
-                  "        Corrente da fase A sobe para %.0f A. (origem: %s)\n", I_FALTA_A, origem);
+                  "        %s (origem: %s)\n",
+                  vaoFechado ? "Corrente da fase A sobe muito (falta alimentada)." : "Mas o vao 1 esta aberto: sem corrente de falta.", origem);
     else
         LOG_PRINT("[FALTA] Arvore retirada. Linha normal de novo. (origem: %s)\n", origem);
     LOG_PRINT("==================================================\n");
@@ -230,6 +259,50 @@ static void* threadBotao(void* arg) {
     return NULL;
 }
 #endif
+
+// ----------------------------------------------------------------
+// Posicoes do patio (gcbPos). So interessa o vao 1: DJ1 e chave 1.
+// ----------------------------------------------------------------
+static int64_t relogioMs(void) {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (int64_t) t.tv_sec * 1000 + t.tv_nsec / 1000000;
+}
+
+static void mudarVao(int fechado, const char* motivo) {
+    if (fechado == vaoFechado) return;
+    vaoFechado = fechado;
+    if (fechado)
+        LOG_PRINT("[VAO 1] Fechado (%s): volta a passar corrente%s.\n", motivo,
+                  arvoreNaLinha ? ", e a arvore esta na linha: CORRENTE DE FALTA" : "");
+    else
+        LOG_PRINT("[VAO 1] Aberto (%s): sem corrente no TC%s.\n", motivo,
+                  arvoreNaLinha ? " (a falta deixou de ser alimentada)" : "");
+}
+
+static void goosePosListener(GooseSubscriber sub, void* parameter) {
+    MmsValue* valores = GooseSubscriber_getDataSetValues(sub);
+    MmsValue* dj1 = valores ? MmsValue_getElement(valores, 0) : NULL;
+    MmsValue* ch1 = valores ? MmsValue_getElement(valores, 3) : NULL;
+    if (dj1 == NULL || ch1 == NULL || MmsValue_getType(dj1) != MMS_BIT_STRING || MmsValue_getType(ch1) != MMS_BIT_STRING)
+        return;
+    int fechado = (Dbpos_fromMmsValue(dj1) == DBPOS_ON) &&
+                  (Dbpos_fromMmsValue(ch1) == DBPOS_ON);
+    ultimoPosMs = relogioMs();
+    if (!posConhecida) {
+        posConhecida = 1;
+        LOG_PRINT("[GOOSE] Recebendo as posicoes da Pi do servo (gcbPos).\n");
+    }
+    mudarVao(fechado, fechado ? "DJ1 e chave 1 fechados" : "DJ1 ou chave 1 aberto");
+}
+
+// Chamada a cada segundo: sem gcbPos ha 3 s, considera o vao fechado.
+static void conferirPosicoes(void) {
+    if (!posConhecida || relogioMs() - ultimoPosMs < POS_TIMEOUT_MS) return;
+    posConhecida = 0;
+    LOG_PRINT("[GOOSE] Sem as posicoes da Pi do servo ha %d s: considerando o vao 1 fechado.\n", POS_TIMEOUT_MS / 1000);
+    mudarVao(1, "sem posicoes");
+}
 
 // ----------------------------------------------------------------
 // Publicacao do SV: uma mensagem a cada 1/4800 s (cerca de 208 us).
@@ -299,7 +372,11 @@ static void* threadSV(void* arg) {
         // Formas de onda. A posicao dentro do ciclo vem de n % 80, assim o
         // angulo nao perde precisao com o tempo.
         double wt = w * (double) (n % AMOSTRAS_POR_CICLO);
-        int falta = arvoreNaLinha;
+        // Vao aberto: nao passa corrente (nem a de carga, nem a da falta).
+        // As tensoes sao as do barramento: so caem com a falta alimentada.
+        int fechado = vaoFechado;
+        int falta = arvoreNaLinha && fechado;
+        double kI = fechado ? 1.0 : 0.0;
 
         double va = r2 * vFase * (falta ? V_FALTA_PU : 1.0) * sin(wt);
         double vb = r2 * vFase * sin(wt - c120);
@@ -307,9 +384,9 @@ static void* threadSV(void* arg) {
         double vn = va + vb + vc;                            // tensao residual
 
         double ia = falta ? r2 * I_FALTA_A * sin(wt - angFalta)
-                          : r2 * I_CARGA_A * sin(wt - angCarga);
-        double ib = r2 * I_CARGA_A * sin(wt - c120 - angCarga);
-        double ic = r2 * I_CARGA_A * sin(wt + c120 - angCarga);
+                          : kI * r2 * I_CARGA_A * sin(wt - angCarga);
+        double ib = kI * r2 * I_CARGA_A * sin(wt - c120 - angCarga);
+        double ic = kI * r2 * I_CARGA_A * sin(wt + c120 - angCarga);
         double in = ia + ib + ic;                            // corrente de neutro
 
         double valores[8] = { ia * ESCALA_I, ib * ESCALA_I, ic * ESCALA_I, in * ESCALA_I,
@@ -423,6 +500,21 @@ int main(int argc, char** argv) {
 #endif
     LOG_PRINT("[STATUS] Servidor na porta %d. Supervisorio: FLTGGIO1.SPCSO1 (1 = arvore cai, 0 = retira).\n", tcpPort);
 
+    // Assina as posicoes do patio para saber se o vao 1 esta fechado
+    GooseReceiver gooseReceiver = GooseReceiver_create();
+    GooseReceiver_setInterfaceId(gooseReceiver, INTERFACE_GOOSE);
+    GooseSubscriber subPos = GooseSubscriber_create(GOOSE_POS_REF, NULL);
+    GooseSubscriber_setDstMac(subPos, GOOSE_POS_DSTMAC);
+    GooseSubscriber_setAppId(subPos, GOOSE_POS_APPID);
+    GooseSubscriber_setListener(subPos, goosePosListener, NULL);
+    GooseReceiver_addSubscriber(gooseReceiver, subPos);
+    GooseReceiver_start(gooseReceiver);
+    if (GooseReceiver_isRunning(gooseReceiver))
+        LOG_PRINT("[GOOSE]  Assinando gcbPos em %s (APPID 0x%04X): com o DJ1 ou a chave 1 aberta, as correntes vao a zero.\n",
+                  INTERFACE_GOOSE, GOOSE_POS_APPID);
+    else
+        LOG_PRINT("[GOOSE]  ERRO: nao consegui escutar o GOOSE em %s. A MU segue considerando o vao 1 fechado.\n", INTERFACE_GOOSE);
+
     running = 1;
 
     pthread_t tSV;
@@ -446,11 +538,12 @@ int main(int argc, char** argv) {
     while (running) {
         Thread_sleep(1000);
         if (segundos % 5 == 0) atualizarRelogio();     // a cada 5 s
+        conferirPosicoes();
         if (++segundos % 10 == 0) {
             uint32_t total = svEnviadas;
-            LOG_PRINT("[SV] %u mensagens/s | puladas por atraso: %u | arvore na linha: %s\n",
+            LOG_PRINT("[SV] %u mensagens/s | puladas por atraso: %u | arvore na linha: %s | vao 1: %s\n",
                       (unsigned) ((total - enviadasAntes) / 10), (unsigned) svPuladas,
-                      arvoreNaLinha ? "SIM" : "nao");
+                      arvoreNaLinha ? "SIM" : "nao", vaoFechado ? "fechado" : "aberto");
             enviadasAntes = total;
         }
     }
@@ -461,6 +554,8 @@ int main(int argc, char** argv) {
     if (tBotao) Thread_destroy(tBotao);
     if (botaoOk) digitalWrite(LED_PINO, LOW);
 #endif
+    GooseReceiver_stop(gooseReceiver);
+    GooseReceiver_destroy(gooseReceiver);
     SVPublisher_destroy(sv.pub);
     IedServer_stop(iedServer);
     IedServer_destroy(iedServer);

@@ -1,0 +1,488 @@
+{
+ "tags": [
+  {
+   "id": "dj1.pos",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — posição (XCBR1)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR1.Pos.stVal"
+  },
+  {
+   "id": "ch1.pos",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — posição (XSWI1)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI1.Pos.stVal"
+  },
+  {
+   "id": "ch1.pos_prot",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — posição vista pelo IED de controle (CSWI1)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI1.Pos.stVal"
+  },
+  {
+   "id": "cilo1.abrir",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — liberada para abrir (CILO1.EnaOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO1.EnaOpn.stVal"
+  },
+  {
+   "id": "cilo1.fechar",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — liberada para fechar (CILO1.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO1.EnaCls.stVal"
+  },
+  {
+   "id": "cswi1.opopn",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — ordem de abrir a caminho (CSWI1.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI1.OpOpn.general"
+  },
+  {
+   "id": "cswi1.opcls",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — ordem de fechar a caminho (CSWI1.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI1.OpCls.general"
+  },
+  {
+   "id": "dj1.opcnt",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR1.OpCnt.stVal"
+  },
+  {
+   "id": "ch1.opcnt",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI1.OpCnt.stVal"
+  },
+  {
+   "id": "dj1.pos_prot",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — posição vista pelo IED de controle (CSWI4)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI4.Pos.stVal"
+  },
+  {
+   "id": "cilo4.fechar",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — liberado para fechar (CILO4.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO4.EnaCls.stVal"
+  },
+  {
+   "id": "cswi4.opopn",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — ordem de abrir a caminho (CSWI4.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI4.OpOpn.general"
+  },
+  {
+   "id": "cswi4.opcls",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — ordem de fechar a caminho (CSWI4.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI4.OpCls.general"
+  },
+  {
+   "id": "dj2.pos",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — posição (XCBR2)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR2.Pos.stVal"
+  },
+  {
+   "id": "ch2.pos",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — posição (XSWI2)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI2.Pos.stVal"
+  },
+  {
+   "id": "ch2.pos_prot",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — posição vista pelo IED de controle (CSWI2)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI2.Pos.stVal"
+  },
+  {
+   "id": "cilo2.abrir",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — liberada para abrir (CILO2.EnaOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO2.EnaOpn.stVal"
+  },
+  {
+   "id": "cilo2.fechar",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — liberada para fechar (CILO2.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO2.EnaCls.stVal"
+  },
+  {
+   "id": "cswi2.opopn",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — ordem de abrir a caminho (CSWI2.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI2.OpOpn.general"
+  },
+  {
+   "id": "cswi2.opcls",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — ordem de fechar a caminho (CSWI2.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI2.OpCls.general"
+  },
+  {
+   "id": "dj2.opcnt",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR2.OpCnt.stVal"
+  },
+  {
+   "id": "ch2.opcnt",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI2.OpCnt.stVal"
+  },
+  {
+   "id": "dj2.pos_prot",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — posição vista pelo IED de controle (CSWI5)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI5.Pos.stVal"
+  },
+  {
+   "id": "cilo5.fechar",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — liberado para fechar (CILO5.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO5.EnaCls.stVal"
+  },
+  {
+   "id": "cswi5.opopn",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — ordem de abrir a caminho (CSWI5.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI5.OpOpn.general"
+  },
+  {
+   "id": "cswi5.opcls",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — ordem de fechar a caminho (CSWI5.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI5.OpCls.general"
+  },
+  {
+   "id": "dj3.pos",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — posição (XCBR3)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR3.Pos.stVal"
+  },
+  {
+   "id": "ch3.pos",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — posição (XSWI3)",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI3.Pos.stVal"
+  },
+  {
+   "id": "ch3.pos_prot",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — posição vista pelo IED de controle (CSWI3)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI3.Pos.stVal"
+  },
+  {
+   "id": "cilo3.abrir",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — liberada para abrir (CILO3.EnaOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO3.EnaOpn.stVal"
+  },
+  {
+   "id": "cilo3.fechar",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — liberada para fechar (CILO3.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO3.EnaCls.stVal"
+  },
+  {
+   "id": "cswi3.opopn",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — ordem de abrir a caminho (CSWI3.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI3.OpOpn.general"
+  },
+  {
+   "id": "cswi3.opcls",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — ordem de fechar a caminho (CSWI3.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI3.OpCls.general"
+  },
+  {
+   "id": "dj3.opcnt",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XCBR3.OpCnt.stVal"
+  },
+  {
+   "id": "ch3.opcnt",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — contador de manobras",
+   "ied": "CTRL",
+   "fc": "ST",
+   "ref": "EmpElas_CTRLVAO/XSWI3.OpCnt.stVal"
+  },
+  {
+   "id": "dj3.pos_prot",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — posição vista pelo IED de controle (CSWI6)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI6.Pos.stVal"
+  },
+  {
+   "id": "cilo6.fechar",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — liberado para fechar (CILO6.EnaCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CILO6.EnaCls.stVal"
+  },
+  {
+   "id": "cswi6.opopn",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — ordem de abrir a caminho (CSWI6.OpOpn)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI6.OpOpn.general"
+  },
+  {
+   "id": "cswi6.opcls",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — ordem de fechar a caminho (CSWI6.OpCls)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/CSWI6.OpCls.general"
+  },
+  {
+   "id": "i.phsA",
+   "grupo": "Medição",
+   "desc": "Corrente fase A (MMXU1.A)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsA.cVal.mag.f",
+   "unidade": "A"
+  },
+  {
+   "id": "i.phsB",
+   "grupo": "Medição",
+   "desc": "Corrente fase B (MMXU1.A)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsB.cVal.mag.f",
+   "unidade": "A"
+  },
+  {
+   "id": "i.phsC",
+   "grupo": "Medição",
+   "desc": "Corrente fase C (MMXU1.A)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.A.phsC.cVal.mag.f",
+   "unidade": "A"
+  },
+  {
+   "id": "i.neut",
+   "grupo": "Medição",
+   "desc": "Corrente neutro (MMXU1.A)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.A.neut.cVal.mag.f",
+   "unidade": "A"
+  },
+  {
+   "id": "v.phsA",
+   "grupo": "Medição",
+   "desc": "Tensão fase A (MMXU1.PhV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsA.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "v.phsB",
+   "grupo": "Medição",
+   "desc": "Tensão fase B (MMXU1.PhV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsB.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "v.phsC",
+   "grupo": "Medição",
+   "desc": "Tensão fase C (MMXU1.PhV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PhV.phsC.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "v.phsAB",
+   "grupo": "Medição",
+   "desc": "Tensão entre fases AB (MMXU1.PPV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PPV.phsAB.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "v.phsBC",
+   "grupo": "Medição",
+   "desc": "Tensão entre fases BC (MMXU1.PPV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PPV.phsBC.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "v.phsCA",
+   "grupo": "Medição",
+   "desc": "Tensão entre fases CA (MMXU1.PPV)",
+   "ied": "PROT",
+   "fc": "MX",
+   "ref": "EmpElas_PROTMEDPROT/MMXU1.PPV.phsCA.cVal.mag.f",
+   "unidade": "kV"
+  },
+  {
+   "id": "pioc.str",
+   "grupo": "Proteção",
+   "desc": "Partida da sobrecorrente instantânea (PIOC1.Str)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/PIOC1.Str.general"
+  },
+  {
+   "id": "pioc.op",
+   "grupo": "Proteção",
+   "desc": "Atuação da sobrecorrente instantânea (PIOC1.Op)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/PIOC1.Op.general"
+  },
+  {
+   "id": "ptrc.tr",
+   "grupo": "Proteção",
+   "desc": "Trip (PTRC1.Tr)",
+   "ied": "PROT",
+   "fc": "ST",
+   "ref": "EmpElas_PROTMEDPROT/PTRC1.Tr.general"
+  },
+  {
+   "id": "falta",
+   "grupo": "Linha (MU)",
+   "desc": "Árvore na linha (botão da falta na maquete, FLTGGIO1.SPCSO1)",
+   "ied": "MU",
+   "fc": "ST",
+   "ref": "EmpElas_MUMU01/FLTGGIO1.SPCSO1.stVal"
+  }
+ ],
+ "comandos": [
+  {
+   "id": "dj1.cmd",
+   "grupo": "Vão 1",
+   "desc": "Disjuntor 1 — abrir/fechar pelo IED de controle (CSWI4.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI4.Pos",
+   "tipo": "d"
+  },
+  {
+   "id": "ch1.cmd",
+   "grupo": "Vão 1",
+   "desc": "Chave 1 — abrir/fechar pelo IED de controle (CSWI1.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI1.Pos",
+   "tipo": "d"
+  },
+  {
+   "id": "dj2.cmd",
+   "grupo": "Vão 2",
+   "desc": "Disjuntor 2 — abrir/fechar pelo IED de controle (CSWI5.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI5.Pos",
+   "tipo": "d"
+  },
+  {
+   "id": "ch2.cmd",
+   "grupo": "Vão 2",
+   "desc": "Chave 2 — abrir/fechar pelo IED de controle (CSWI2.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI2.Pos",
+   "tipo": "d"
+  },
+  {
+   "id": "dj3.cmd",
+   "grupo": "Vão 3",
+   "desc": "Disjuntor 3 — abrir/fechar pelo IED de controle (CSWI6.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI6.Pos",
+   "tipo": "d"
+  },
+  {
+   "id": "ch3.cmd",
+   "grupo": "Vão 3",
+   "desc": "Chave 3 — abrir/fechar pelo IED de controle (CSWI3.Pos)",
+   "ied": "PROT",
+   "ref": "EmpElas_PROTMEDPROT/CSWI3.Pos",
+   "tipo": "d"
+  }
+ ]
+}

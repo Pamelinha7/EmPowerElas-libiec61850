@@ -1,19 +1,22 @@
 /*
  * EmPowerElas - manobra pelo terminal (sem o Elipse)
  *
- * Comanda as chaves pelo IED de controle (CSWI, na Pi das telinhas) e os
- * disjuntores direto na Pi do servo (XCBR), do mesmo jeito que o Elipse
- * faz. Serve para testar o intertravamento e para a demonstracao.
+ * Comanda as chaves (CSWI1-3) e os disjuntores (CSWI4-6) pelo IED de
+ * controle, na Pi das telinhas, do mesmo jeito que o Elipse faz. Serve para
+ * testar o intertravamento e para a demonstracao.
  *
  *   ./testes/manobra <IP da Pi das telinhas> chave <1-3> [abrir|fechar]
- *   ./testes/manobra <IP da Pi do servo>     dj    <1-3> [abrir|fechar]
+ *   ./testes/manobra <IP da Pi das telinhas> dj    <1-3> [abrir|fechar]
  *
  * Sem "abrir" ou "fechar" (ou com "ver"), so mostra o estado. Um numero no
  * fim troca a porta (padrao 102).
  *
+ * Formato da norma: o comando e booleano (true = fechar, false = abrir) e a
+ * posicao (Dbpos) vem com 01 = aberto e 10 = fechado.
+ *
  * Exemplos (IPs do cabo, roteador da maquete):
  *   ./testes/manobra 192.168.10.101 chave 1 abrir
- *   ./testes/manobra 192.168.10.100 dj 1 fechar
+ *   ./testes/manobra 192.168.10.101 dj 1 fechar
  */
 
 #include "iec61850_client.h"
@@ -38,19 +41,20 @@ static const char* textoAddCause(int c) {
     switch (c) {
     case 5:  return "ja esta nessa posicao";
     case 10: return "bloqueado pelo intertravamento";
-    case 12: return "a chave ainda esta manobrando";
+    case 12: return "ainda esta manobrando";
     default: return "outro motivo (veja o terminal do IED)";
     }
 }
 
-// Le uma posicao de ponto duplo (1 = aberto, 2 = fechado). -1 se falhar.
+// Le uma posicao de ponto duplo no formato da norma. Devolve 0 = em
+// movimento, 1 = aberto, 2 = fechado, 3 = invalido; -1 se falhar.
 static int lerPos(IedConnection con, const char* ref, bool* qualidadeBoa) {
     IedClientError err;
     char r[128];
     snprintf(r, sizeof(r), "%s.stVal", ref);
     MmsValue* v = IedConnection_readObject(con, &err, r, IEC61850_FC_ST);
     if (err != IED_ERROR_OK || v == NULL) return -1;
-    int p = (MmsValue_getType(v) == MMS_BIT_STRING) ? (int) MmsValue_getBitStringAsInteger(v) : -1;
+    int p = (MmsValue_getType(v) == MMS_BIT_STRING) ? (int) Dbpos_fromMmsValue(v) : -1;
     MmsValue_delete(v);
     if (qualidadeBoa) {
         snprintf(r, sizeof(r), "%s.q", ref);
@@ -60,28 +64,33 @@ static int lerPos(IedConnection con, const char* ref, bool* qualidadeBoa) {
     return p;
 }
 
-static void mostrarChave(IedConnection con, const char* ld, int n) {
+// Chave N = CSWI/CILO N; disjuntor N = CSWI/CILO N+3
+static void mostrar(IedConnection con, const char* ld, bool chave, int n) {
     IedClientError err;
     char ref[128];
     bool qOk = false;
-    snprintf(ref, sizeof(ref), "%s/CSWI%d.Pos", ld, n);
+    int k = chave ? n : n + 3;
+    const char* nome = chave ? "Chave" : "Disjuntor";
+    snprintf(ref, sizeof(ref), "%s/CSWI%d.Pos", ld, k);
     int p = lerPos(con, ref, &qOk);
-    snprintf(ref, sizeof(ref), "%s/CILO%d.EnaOpn.stVal", ld, n);
-    bool ena = IedConnection_readBooleanValue(con, &err, ref, IEC61850_FC_ST);
-    bool enaOk = (err == IED_ERROR_OK);
+    if (p < 0) printf("%s %d: nao consegui ler (o IED tem o CSWI%d? E a versao nova?)\n", nome, n, k);
+    else if (!qOk) printf("%s %d: posicao desconhecida (nao chega o GOOSE da Pi do servo)\n", nome, n);
+    else printf("%s %d: %s\n", nome, n, textoPos(p, chave));
 
-    if (p < 0) printf("Chave %d: nao consegui ler (o IED tem o CSWI%d? E a versao nova?)\n", n, n);
-    else if (!qOk) printf("Chave %d: posicao desconhecida (nao chega o GOOSE da Pi do servo)\n", n);
-    else printf("Chave %d: %s\n", n, textoPos(p, true));
-    if (enaOk)
-        printf("Intertravamento (CILO%d): %s\n", n, ena ? "LIBERADA (disjuntor aberto)" : "BLOQUEADA");
+    // Chave: abrir e fechar liberam juntos. Disjuntor: abre sempre, o que importa e o fechar.
+    snprintf(ref, sizeof(ref), "%s/CILO%d.%s.stVal", ld, k, chave ? "EnaOpn" : "EnaCls");
+    bool ena = IedConnection_readBooleanValue(con, &err, ref, IEC61850_FC_ST);
+    if (err == IED_ERROR_OK) {
+        if (chave) printf("Intertravamento (CILO%d): %s\n", k, ena ? "LIBERADA (disjuntor aberto)" : "BLOQUEADA");
+        else       printf("Intertravamento (CILO%d): fechar %s\n", k, ena ? "LIBERADO" : "BLOQUEADO");
+    }
 }
 
 int main(int argc, char** argv) {
     if (argc < 4) {
         printf("Uso:\n"
                "  %s <IP da Pi das telinhas> chave <1-3> [abrir|fechar|ver] [porta]\n"
-               "  %s <IP da Pi do servo>     dj    <1-3> [abrir|fechar|ver] [porta]\n", argv[0], argv[0]);
+               "  %s <IP da Pi das telinhas> dj    <1-3> [abrir|fechar|ver] [porta]\n", argv[0], argv[0]);
         return 1;
     }
     const char* ip = argv[1];
@@ -103,10 +112,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    const char* ld = chave ? "EmpElas_PROTMEDPROT" : "EmpElas_CTRLVAO";
+    const char* ld = "EmpElas_PROTMEDPROT";
     char ref[128];
-    if (chave) snprintf(ref, sizeof(ref), "%s/CSWI%d.Pos", ld, n);
-    else       snprintf(ref, sizeof(ref), "%s/XCBR%d.Pos", ld, n);
+    snprintf(ref, sizeof(ref), "%s/CSWI%d.Pos", ld, chave ? n : n + 3);
 
     IedClientError err;
     IedConnection con = IedConnection_create();
@@ -121,16 +129,15 @@ int main(int argc, char** argv) {
     if (alvo) {
         ControlObjectClient ctl = ControlObjectClient_create(ref, con);
         if (ctl == NULL) {
-            printf("O IED nao tem %s. Confira o IP: chave vai na Pi das telinhas, dj na Pi do servo.\n", ref);
+            printf("O IED nao tem %s. Confira o IP: chaves e disjuntores sao comandados na Pi das telinhas.\n", ref);
             ret = 1;
         } else {
-            MmsValue* v = MmsValue_newBitString(2);
-            MmsValue_setBitStringFromInteger(v, alvo);
+            MmsValue* v = MmsValue_newBoolean(alvo == POS_FECHADA);   // true = fechar
             ControlObjectClient_setOrigin(ctl, "terminal", 3);
             printf("Pedindo para %s %s %d...\n", alvo == POS_ABERTA ? "ABRIR" : "FECHAR", chave ? "a chave" : "o disjuntor", n);
             if (ControlObjectClient_operate(ctl, v, 0)) {
                 printf("Comando ACEITO.\n");
-                if (chave) Thread_sleep(1500);   // o servo leva ~0,5 s, mais a ida e volta do GOOSE
+                if (chave) Thread_sleep(2200);   // o servo leva 1,5 s, mais a ida e volta do GOOSE
                 else Thread_sleep(300);
             } else {
                 LastApplError e = ControlObjectClient_getLastApplError(ctl);
@@ -142,12 +149,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (chave) mostrarChave(con, ld, n);
-    else {
-        int p = lerPos(con, ref, NULL);
-        if (p < 0) printf("Disjuntor %d: nao consegui ler.\n", n);
-        else printf("Disjuntor %d: %s\n", n, textoPos(p, false));
-    }
+    mostrar(con, ld, chave, n);
 
     IedConnection_close(con);
     IedConnection_destroy(con);

@@ -1,0 +1,4 @@
+# Na MU e na CTRL: /etc/chrony/sources.d/empelas.sources
+# A hora vem da PROT pelo cabo (a PROT tem "allow 192.168.10.0/24" e
+# "local stratum 8" no chrony.conf, entao entrega a hora mesmo sem internet).
+server 192.168.10.101 iburst
