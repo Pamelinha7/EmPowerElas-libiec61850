@@ -942,6 +942,8 @@ async function iniciar() {
   $("#aviso-conexao").hidden = true;
   app.ieds = app.cfg.ieds;
   $("#btn-sim-falta").hidden = !app.cfg.simulado;
+  // Editar tela: so com "permitir_edicao": true no config.json (ou no modo simulado)
+  $("#btn-editar").hidden = !app.cfg.edicao;
   desenharStatus();
   desenharTudo();
   ciclo();

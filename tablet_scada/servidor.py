@@ -218,7 +218,7 @@ class MaqueteSimulada:
     def _valor(self, ref):
         import random
         r = ref.split("/", 1)[1]
-        ruido = lambda base: base * (1 + random.uniform(-0.01, 0.01))
+        ruido = lambda base: base * (1 + random.uniform(-0.005, 0.005))
         agora = time.time()
         trip = self._trip()
         for n in range(3):
@@ -236,21 +236,29 @@ class MaqueteSimulada:
             if r == f"CSWI{kd}.OpCls.general": return alvo == self.FECHADO and agora < ate, "b"
             if r == f"XCBR{k}.OpCnt.stVal": return self.cnt_dj[n], "i"
             if r == f"XSWI{k}.OpCnt.stVal": return self.cnt_ch[n], "i"
-        # a MU zera as correntes com o vao 1 aberto; as tensoes sao da barra
+        # a MU zera as correntes com o vao 1 aberto; as tensoes sao da barra.
+        # Mesmos valores da MU: barra de 500 kV entre ~508 e 527 kV, usina
+        # solar com ~250 A (as nuvens derrubam de vez em quando) e falta de 1500 A.
+        import math
         fechado = self._vao1_fechado()
         f = self.falta and fechado
         i = 1.0 if fechado else 0.0
+        vll = 517.5 + 6.0 * math.sin(2 * math.pi * agora / 300) + 3.0 * math.sin(2 * math.pi * agora / 71 + 1.3)
+        vf = vll / math.sqrt(3)
+        ciclo = agora % 120                  # uma nuvem de 25 s a cada 2 minutos
+        nuvem = 0.6 if 80 <= ciclo < 105 else 1.0
+        carga = 250 * nuvem
         medidas = {
-            "MMXU1.A.phsA.cVal.mag.f": ruido(800 if f else 100) * i,
-            "MMXU1.A.phsB.cVal.mag.f": ruido(100) * i,
-            "MMXU1.A.phsC.cVal.mag.f": ruido(100) * i,
-            "MMXU1.A.neut.cVal.mag.f": (ruido(700) if f else abs(ruido(1) - 1)) * i,
-            "MMXU1.PhV.phsA.cVal.mag.f": ruido(87 if f else 289),
-            "MMXU1.PhV.phsB.cVal.mag.f": ruido(289),
-            "MMXU1.PhV.phsC.cVal.mag.f": ruido(289),
-            "MMXU1.PPV.phsAB.cVal.mag.f": ruido(340 if f else 500),
-            "MMXU1.PPV.phsBC.cVal.mag.f": ruido(500),
-            "MMXU1.PPV.phsCA.cVal.mag.f": ruido(340 if f else 500),
+            "MMXU1.A.phsA.cVal.mag.f": ruido(1500 if f else carga) * i,
+            "MMXU1.A.phsB.cVal.mag.f": ruido(carga) * i,
+            "MMXU1.A.phsC.cVal.mag.f": ruido(carga) * i,
+            "MMXU1.A.neut.cVal.mag.f": (ruido(1300) if f else abs(ruido(2) - 2)) * i,
+            "MMXU1.PhV.phsA.cVal.mag.f": ruido(vf * (0.3 if f else 1)),
+            "MMXU1.PhV.phsB.cVal.mag.f": ruido(vf),
+            "MMXU1.PhV.phsC.cVal.mag.f": ruido(vf),
+            "MMXU1.PPV.phsAB.cVal.mag.f": ruido(vll * (0.68 if f else 1)),
+            "MMXU1.PPV.phsBC.cVal.mag.f": ruido(vll),
+            "MMXU1.PPV.phsCA.cVal.mag.f": ruido(vll * (0.68 if f else 1)),
         }
         if r in medidas: return round(medidas[r], 2), "f"
         if r in ("PIOC1.Str.general", "PIOC1.Op.general", "PTRC1.Tr.general"): return trip, "b"
@@ -586,7 +594,8 @@ def criar_handler(sup):
             q = parse_qs(url.query)
             if url.path == "/api/config":
                 return self._json({"ieds": sup.status(), "simulado": sup.simulado,
-                                   "catalogo": sup.catalogo})
+                                   "catalogo": sup.catalogo,
+                                   "edicao": bool(sup.simulado or sup.config.get("permitir_edicao", False))})
             if url.path == "/api/telas":
                 with trava_telas:
                     return self._json(carregar_telas())
@@ -630,6 +639,10 @@ def criar_handler(sup):
         def do_PUT(self):
             if urlparse(self.path).path != "/api/telas":
                 return self._json({"erro": "nao encontrado"}, 404)
+            # Na apresentacao, qualquer visitante no Wi-Fi abre esta pagina.
+            # Mudar a tela so com "permitir_edicao": true no config.json.
+            if not (sup.simulado or sup.config.get("permitir_edicao", False)):
+                return self._json({"erro": "a edicao da tela esta desligada (permitir_edicao no config.json)"}, 403)
             try:
                 dados = self._corpo()
             except ValueError:

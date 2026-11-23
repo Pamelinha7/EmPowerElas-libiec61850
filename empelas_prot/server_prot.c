@@ -117,7 +117,9 @@ static uint8_t SV_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x04, 0x00, 0x01};
 #define SV_TIMEOUT_MS       100
 
 // ================= PROTECAO ================================
-#define PIOC_PARTIDA        300.0   // ajuste da sobrecorrente instantanea de fase (A)
+#define PIOC_PARTIDA        600.0   // ajuste da sobrecorrente instantanea de fase (A).
+                                    // Acima da maior carga da linha (462 A com os dois
+                                    // transformadores em 200 MVA) e abaixo da falta (1500 A).
 
 // ======= CONTROLE: CHAVES E DISJUNTORES (CSWI + CILO) ========
 // Posicoes vindas da Pi do servo. Valores IGUAIS aos do empelas_ctrl.icd.
@@ -1124,6 +1126,28 @@ static int ate999(double x) {
     return (int) r;
 }
 
+// Correntes das 3 fases em 16 caracteres. De 1000 A para cima, em
+// milhares com uma casa: "A1,5k B251 C253" (1500 A na fase A).
+static void campoCorrente(char* c, size_t n, double x) {
+    long r = lround(x);
+    if (r < 0) r = 0;
+    if (r < 1000) snprintf(c, n, "%3ld", r);
+    else {
+        long d = lround(x / 100.0);              // decimos de kA
+        if (d > 99) snprintf(c, n, "%2ldk", d / 10 > 99 ? 99 : d / 10);
+        else        snprintf(c, n, "%ld,%ldk", d / 10, d % 10);
+    }
+}
+
+static void textoCorrentes(char* l, size_t n, const double i[3]) {
+    char a[24], b[24], c[24];
+    campoCorrente(a, sizeof(a), i[0]);
+    campoCorrente(b, sizeof(b), i[1]);
+    campoCorrente(c, sizeof(c), i[2]);
+    snprintf(l, n, "A%.4s B%.4s C%.4s", a, b, c);
+    if (strlen(l) > 16) snprintf(l, n, "A%.4sB%.4sC%.4s", a, b, c);   // mais de uma fase em kA
+}
+
 // aviso != NULL: o LCD2 mostra o aviso das chaves no lugar das tensoes
 static void atualizarDisplays(const Medidas* m, bool svOk, int fases, int memo, const char aviso[2][17]) {
     char l[40];
@@ -1144,7 +1168,7 @@ static void atualizarDisplays(const Medidas* m, bool svOk, int fases, int memo, 
         } else {
             lcdLinha(lcd1, 0, "CORRENTE (A)");
         }
-        if (svOk) snprintf(l, sizeof(l), "A%3d B%3d C%3d", ate999(m->i[0]), ate999(m->i[1]), ate999(m->i[2]));
+        if (svOk) textoCorrentes(l, sizeof(l), m->i);
         else      snprintf(l, sizeof(l), "A--- B--- C---");
         lcdLinha(lcd1, 1, l);
     }

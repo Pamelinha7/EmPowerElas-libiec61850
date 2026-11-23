@@ -93,10 +93,28 @@ static uint8_t GOOSE_POS_DSTMAC[6] = {0x01, 0x0C, 0xCD, 0x01, 0x00, 0x02};
 #define AMOSTRAS_POR_SEG    (FREQ_HZ * AMOSTRAS_POR_CICLO)  // 4800
 
 // ============== SISTEMA ELETRICO SIMULADO ====================
-#define V_LINHA_KV        500.0   // tensao entre fases (kV eficaz)
-#define I_CARGA_A         100.0   // corrente normal em cada fase (A eficaz)
-#define ANG_CARGA_GRAUS    25.0   // atraso da corrente normal (fator de potencia ~0,9)
-#define I_FALTA_A         800.0   // corrente na fase A durante a falta (A eficaz)
+// Subestacao de 500/34,5 kV que escoa um parque fotovoltaico: 2
+// transformadores de 128/160/200 MVA e 1 linha de 500 kV (projeto do livro
+// do Mamede). A MU mede a linha.
+//
+// Tensao: a barra de 500 kV opera um pouco acima do nominal e varia devagar,
+// entre uns 508 e 527 kV entre fases, com diferenca entre fases menor que 1%.
+#define V_LINHA_KV        517.5   // centro da tensao entre fases (kV eficaz)
+#define V_VAR1_KV           6.0   // variacao lenta (periodo de 5 min)
+#define V_VAR2_KV           3.0   // variacao mais rapida (periodo de ~70 s)
+// Corrente: dia de sol, uns 250 A na linha (perto do regime ONAN dos dois
+// transformadores juntos). O maximo de projeto e 462 A (2 x 200 MVA).
+// Inversores fotovoltaicos trabalham com fator de potencia perto de 1.
+#define I_CARGA_A         250.0   // corrente normal em cada fase (A eficaz)
+#define ANG_CARGA_GRAUS     5.0   // fator de potencia ~0,996
+// Nuvens: de vez em quando a corrente cai de 20% a 60% por alguns segundos.
+#define NUVEM_INTERVALO_MIN_S   45.0
+#define NUVEM_INTERVALO_MAX_S  150.0
+#define NUVEM_DURACAO_MIN_S      8.0
+#define NUVEM_DURACAO_MAX_S     40.0
+#define NUVEM_RAMPA_S            3.0   // tempo para a sombra chegar e sair
+// Falta: a arvore encosta na fase A (fase-terra).
+#define I_FALTA_A        1500.0   // corrente na fase A durante a falta (A eficaz)
 #define ANG_FALTA_GRAUS    80.0   // na falta a corrente fica bem mais atrasada (linha indutiva)
 #define V_FALTA_PU          0.30  // na falta, a tensao da fase A cai para 30%
 
@@ -328,6 +346,36 @@ static void nsParaTs(int64_t ns, struct timespec* t) {
     t->tv_nsec = ns % 1000000000LL;
 }
 
+// Sorteio entre a e b (rand_r: so esta thread usa a semente).
+static double sorteio(unsigned* semente, double a, double b) {
+    return a + (b - a) * ((double) rand_r(semente) / (double) RAND_MAX);
+}
+
+// Nuvem passando: fator de 1 (sol pleno) a 1 - profundidade (sombra).
+// Chamada uma vez por ciclo, com o tempo t em segundos desde o inicio.
+typedef struct {
+    double inicio, duracao, profundidade;   // nuvem atual (ou a proxima)
+    unsigned semente;
+} Nuvem;
+
+static void proximaNuvem(Nuvem* nv, double depoisDe) {
+    nv->inicio = depoisDe + sorteio(&nv->semente, NUVEM_INTERVALO_MIN_S, NUVEM_INTERVALO_MAX_S);
+    nv->duracao = sorteio(&nv->semente, NUVEM_DURACAO_MIN_S, NUVEM_DURACAO_MAX_S);
+    nv->profundidade = sorteio(&nv->semente, 0.20, 0.60);
+}
+
+static double fatorNuvem(Nuvem* nv, double t) {
+    double fim = nv->inicio + nv->duracao + 2.0 * NUVEM_RAMPA_S;
+    if (t >= fim) { proximaNuvem(nv, fim); }
+    if (t < nv->inicio) return 1.0;
+    double x = t - nv->inicio, sombra;
+    if (x < NUVEM_RAMPA_S) sombra = x / NUVEM_RAMPA_S;                       // chegando
+    else if (x < NUVEM_RAMPA_S + nv->duracao) sombra = 1.0;                  // em cima
+    else sombra = 1.0 - (x - NUVEM_RAMPA_S - nv->duracao) / NUVEM_RAMPA_S;   // saindo
+    if (sombra < 0.0) sombra = 0.0;
+    return 1.0 - nv->profundidade * sombra;
+}
+
 static void* threadSV(void* arg) {
     PublicadorSV* sv = (PublicadorSV*) arg;
 
@@ -340,7 +388,9 @@ static void* threadSV(void* arg) {
 
     const double w = 2.0 * M_PI / AMOSTRAS_POR_CICLO;       // angulo entre duas amostras
     const double r2 = sqrt(2.0);
-    const double vFase = V_LINHA_KV * 1000.0 / sqrt(3.0);    // tensao de fase eficaz (V)
+    // Pequena diferenca fixa entre as fases (menor que 1%), como numa rede real
+    const double kVf[3] = { 1.000, 0.997, 1.004 };
+    const double kIf[3] = { 1.000, 0.996, 1.005 };
     const double angCarga = ANG_CARGA_GRAUS * M_PI / 180.0;
     const double angFalta = ANG_FALTA_GRAUS * M_PI / 180.0;
     const double c120 = 2.0 * M_PI / 3.0;
@@ -349,6 +399,13 @@ static void* threadSV(void* arg) {
     clock_gettime(CLOCK_MONOTONIC, &agora);
     const int64_t t0 = tsParaNs(&agora);
     uint64_t n = 0;                                          // numero da amostra desde o inicio
+
+    // Tensao e corrente eficazes do ciclo atual (recalculadas a cada ciclo)
+    Nuvem nuvem;
+    nuvem.semente = (unsigned) (t0 ^ (t0 >> 32));
+    proximaNuvem(&nuvem, 20.0);                              // a primeira nuvem vem cedo
+    double vFase = V_LINHA_KV * 1000.0 / sqrt(3.0);          // tensao de fase eficaz (V)
+    double iCarga = I_CARGA_A;
 
     while (running) {
         // Instante desta amostra (conta feita em duas partes para nunca estourar)
@@ -369,6 +426,15 @@ static void* threadSV(void* arg) {
             n = nAgora;
         }
 
+        // Uma vez por ciclo: tensao da barra e corrente da usina neste momento
+        if (n % AMOSTRAS_POR_CICLO == 0) {
+            double t = (double) n / AMOSTRAS_POR_SEG;
+            double vLinha = V_LINHA_KV + V_VAR1_KV * sin(2.0 * M_PI * t / 300.0)
+                                       + V_VAR2_KV * sin(2.0 * M_PI * t / 71.0 + 1.3);
+            vFase = vLinha * 1000.0 / sqrt(3.0);
+            iCarga = I_CARGA_A * (1.0 + 0.015 * sin(2.0 * M_PI * t / 53.0)) * fatorNuvem(&nuvem, t);
+        }
+
         // Formas de onda. A posicao dentro do ciclo vem de n % 80, assim o
         // angulo nao perde precisao com o tempo.
         double wt = w * (double) (n % AMOSTRAS_POR_CICLO);
@@ -378,15 +444,15 @@ static void* threadSV(void* arg) {
         int falta = arvoreNaLinha && fechado;
         double kI = fechado ? 1.0 : 0.0;
 
-        double va = r2 * vFase * (falta ? V_FALTA_PU : 1.0) * sin(wt);
-        double vb = r2 * vFase * sin(wt - c120);
-        double vc = r2 * vFase * sin(wt + c120);
+        double va = r2 * vFase * kVf[0] * (falta ? V_FALTA_PU : 1.0) * sin(wt);
+        double vb = r2 * vFase * kVf[1] * sin(wt - c120);
+        double vc = r2 * vFase * kVf[2] * sin(wt + c120);
         double vn = va + vb + vc;                            // tensao residual
 
         double ia = falta ? r2 * I_FALTA_A * sin(wt - angFalta)
-                          : kI * r2 * I_CARGA_A * sin(wt - angCarga);
-        double ib = kI * r2 * I_CARGA_A * sin(wt - c120 - angCarga);
-        double ic = kI * r2 * I_CARGA_A * sin(wt + c120 - angCarga);
+                          : kI * r2 * iCarga * kIf[0] * sin(wt - angCarga);
+        double ib = kI * r2 * iCarga * kIf[1] * sin(wt - c120 - angCarga);
+        double ic = kI * r2 * iCarga * kIf[2] * sin(wt + c120 - angCarga);
         double in = ia + ib + ic;                            // corrente de neutro
 
         double valores[8] = { ia * ESCALA_I, ib * ESCALA_I, ic * ESCALA_I, in * ESCALA_I,
@@ -490,8 +556,8 @@ int main(int argc, char** argv) {
     LOG_PRINT("\n--- EmpElas_MU : MERGING UNIT (TC e TP digitais da linha) ---\n");
     LOG_PRINT("[SV]     Publicando em %s: svID %s, APPID 0x%04X, %d amostras/ciclo (%d por segundo).\n",
               INTERFACE_SV, SV_ID, SV_APPID, AMOSTRAS_POR_CICLO, AMOSTRAS_POR_SEG);
-    LOG_PRINT("[LINHA]  Normal: %.0f kV entre fases, %.0f A por fase. Falta: fase A com %.0f A.\n",
-              V_LINHA_KV, I_CARGA_A, I_FALTA_A);
+    LOG_PRINT("[LINHA]  Normal: %.0f a %.0f kV entre fases, %.0f A por fase, com nuvens de vez em quando. Falta: fase A com %.0f A.\n",
+              V_LINHA_KV - V_VAR1_KV - V_VAR2_KV, V_LINHA_KV + V_VAR1_KV + V_VAR2_KV, I_CARGA_A, I_FALTA_A);
 #ifndef SEM_BOTAO
     if (botaoOk)
         LOG_PRINT("[BOTAO]  Botao no pino fisico 11 (e GND). LED no pino fisico 13. Cada aperto alterna a falta.\n");

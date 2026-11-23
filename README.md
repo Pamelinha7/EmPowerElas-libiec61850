@@ -114,6 +114,7 @@ EmPowerElas-libiec61850/
 ├── INSTALACAO.md          # guia detalhado de instalação e ligações
 ├── ETAPA_NORMA.md         # PIOC, CSWI4-6 e posição no formato da norma
 ├── ETAPA_REDE.md          # switch, Wi-Fi, serviços e relógio
+├── ETAPA_VALORES.md       # tensão, corrente, falta e ajuste da proteção
 └── README.md
 ```
 

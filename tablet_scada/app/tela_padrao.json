@@ -435,7 +435,7 @@
       },
       "unidade": "A",
       "casas": 0,
-      "limite": 300
+      "limite": 600
      }
     },
     {
@@ -454,7 +454,7 @@
       },
       "unidade": "A",
       "casas": 0,
-      "limite": 300
+      "limite": 600
      }
     },
     {
@@ -473,7 +473,7 @@
       },
       "unidade": "A",
       "casas": 0,
-      "limite": 300
+      "limite": 600
      }
     },
     {
@@ -579,7 +579,7 @@
      "w": 420,
      "h": 24,
      "props": {
-      "texto": "Tensões de fase: 500 kV ÷ √3 ≈ 289 kV.",
+      "texto": "Barra de 500 kV operando entre 505 e 535 kV: fase ≈ 300 kV.",
       "tamanho": 13,
       "cor": "#9aa7b4",
       "negrito": false
@@ -593,7 +593,7 @@
      "w": 420,
      "h": 24,
      "props": {
-      "texto": "Corrente acima de 300 A em qualquer fase dá trip.",
+      "texto": "Corrente acima de 600 A em qualquer fase dá trip (carga máxima: 462 A).",
       "tamanho": 13,
       "cor": "#9aa7b4",
       "negrito": false
@@ -693,7 +693,7 @@
       "rot3": "IC",
       "cor3": "#3d8bfd",
       "min": 0,
-      "max": 900,
+      "max": 1800,
       "janela": 60
      }
     }

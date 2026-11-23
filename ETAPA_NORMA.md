@@ -4,7 +4,7 @@ Esta etapa deixa a maquete mais perto da IEC 61850 em quatro pontos. As três Pi
 
 ## O que mudou
 
-1. **Proteção: PIOC no lugar do PTOC.** A sobrecorrente da maquete atua sem atraso, e na norma isso é o PIOC (função 50). O PTOC é a temporizada (função 51). Mudou só o nome do nó lógico: o ajuste continua 300 A.
+1. **Proteção: PIOC no lugar do PTOC.** A sobrecorrente da maquete atua sem atraso, e na norma isso é o PIOC (função 50). O PTOC é a temporizada (função 51). Mudou só o nome do nó lógico. (Depois, o ajuste passou de 300 A para 600 A: ver ETAPA_VALORES.md.)
 2. **Disjuntores comandados pelo IED de controle.** O operador comanda os disjuntores no CSWI4, CSWI5 e CSWI6 da PROT, como já fazia com as chaves (CSWI1-3). O comando sai por GOOSE (gcbCmd, agora com 12 valores) para a CTRL. O XCBR da CTRL ficou só mostrando a posição (status-only). O trip continua indo direto do PTRC para o XCBR1, sem passar pelo CSWI.
 3. **Intertravamento dos disjuntores (CILO4-6).** O disjuntor abre sempre. Ele só fecha se a chave do mesmo vão estiver parada, aberta ou fechada, e nunca no meio do caminho. O DJ1 também não fecha enquanto o trip estiver ativo.
 4. **Posição e comando no formato da norma.**
@@ -61,7 +61,7 @@ Depois de trocar os tags, faça de novo a leitura dos dados do IED no driver, po
 
 ```
 cd ~/EmPowerElas-libiec61850/empelas_prot
-./testes/manobra 192.168.10.101 dj 1 fechar      # ACEITO: LED vermelho, MU passa a 100 A
+./testes/manobra 192.168.10.101 dj 1 fechar      # ACEITO: LED vermelho, MU passa a uns 250 A
 ./testes/manobra 192.168.10.101 chave 1 abrir    # RECUSADO: intertravamento (addCause 10)
 ./testes/manobra 192.168.10.101 dj 1 abrir       # ACEITO
 ./testes/manobra 192.168.10.101 chave 1 abrir    # ACEITO: o servo levanta a chave

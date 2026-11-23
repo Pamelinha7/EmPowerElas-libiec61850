@@ -27,14 +27,12 @@ fica no meio, entregando a página para o tablet e repassando os pedidos.
 
 Em termos de rede, o que importa é só isto: **o tablet precisa estar no mesmo
 wi-fi que a Pi onde o servidor roda**, e essa Pi precisa alcançar os IEDs
-pelo cabo. Na maquete, o tablet entra no Wi-Fi `EmPowerElas` e abre
-`http://192.168.0.10:8080` (ver `ETAPA_REDE.md` na raiz do repositório).
+pelo cabo (o que já acontece hoje, porque o Elipse faz o mesmo caminho).
 
 ## Instalar (numa Pi da maquete, de preferência a do servo)
 
-A libiec61850 já está instalada nas Pis pelo `setup.sh`. Na maquete, a cópia
-que roda fica em `~/tablet_scada` na Pi do servo (CTRL), e liga sozinha pelo
-serviço `empelas-supervisorio` (ver `servicos/` na raiz do repositório).
+A libiec61850 já está instalada nas Pis pelo `setup.sh`. A pasta fica fora do
+repositório do projeto (é um teste), por exemplo em `~/tablet_scada`.
 
 A Pi do servo é a melhor escolha: a das telinhas já calcula o SV 4800 vezes
 por segundo e a MU publica o SV com prioridade de tempo real.
@@ -80,6 +78,13 @@ como na maquete. Como não existe o botão físico, aparece no topo um botão
 notebook ou ensaiar a demonstração.
 
 ## Montar uma tela
+
+Na apresentação, qualquer visitante no Wi-Fi abre o supervisório. Por isso a
+edição fica desligada: o botão **Editar tela** não aparece e o servidor recusa
+salvar telas. Para montar ou mudar uma tela, coloque `"permitir_edicao": true`
+no `config.json` e reinicie (`sudo systemctl restart empelas-supervisorio`).
+Terminou? Volte para `false` e reinicie de novo. No modo `--simulado` a
+edição fica sempre ligada.
 
 1. **Editar tela** → toque num componente da barra de cima para adicionar.
 2. Arraste para posicionar; a bolinha azul no canto muda o tamanho.

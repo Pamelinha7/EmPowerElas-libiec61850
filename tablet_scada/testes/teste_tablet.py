@@ -112,7 +112,7 @@ with sync_playwright() as p:
     t = toast(page); confere("aceito" in t, f"religar DJ1 aceito ({t})")
     page.wait_for_timeout(1200)
     ia = page.locator("#camada g.item", has_text="IA").first.text_content()
-    confere(any(x in ia.split() for x in ("99", "100", "101")), f"corrente de volta ({ia.split()})")
+    confere(any(x.isdigit() and 140 <= int(x) <= 260 for x in ia.split()), f"corrente de volta ({ia.split()})")
 
     # 5) eventos
     page.wait_for_timeout(1600)
@@ -158,7 +158,7 @@ with sync_playwright() as p:
     page.reload(); page.wait_for_load_state("networkidle"); page.wait_for_timeout(1500)
     confere(page.locator("#camada g.item").count() == antes + 1, "tela salva sobreviveu ao recarregar")
     vbc = page.locator("#camada g.item", has_text="NEUTRO").first.text_content()
-    confere(any(str(x) in vbc.split() for x in range(494, 507)), f"componente novo mostra VBC perto de 500 kV ({vbc.split()})")
+    confere(any(str(x) in vbc.split() for x in range(500, 535)), f"componente novo mostra VBC entre 500 e 535 kV ({vbc.split()})")
 
     # 7b) gemeo 3D servido pela mesma Pi, so leitura
     g3 = ctx.new_page()
